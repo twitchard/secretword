@@ -139,7 +139,7 @@ myHandler event _ =
       | r.request.intent.name == "AMAZON.NoIntent" = handleNoIntent r
       | r.request.intent.name == "AMAZON.HelpIntent" =
           emptyResponse
-          # say "Win the game by guessing my secret five-letter word. You can learn more about my secret word by guessing other five letter words. Each time you guess, I will tell you the total number of letters in the word you guess that are also in my secret word. Duplicate letters count towards the total only"
+          # say "Win the game by guessing my secret five-letter word. You can learn more about my secret word by guessing other five letter words. Each time you guess, I will tell you the total number of letters in the word you guess that are also in my secret word. Duplicate letters count add one to the total for each duplication in both the guess and the secret word. For example, if the secret word is sweet and you guess cheer, I will say 2 because both letters contain a duplicate e. But if you guessed reach, I will only say 1, because that guess contains only one e."
             # keepGoing
             # defaultReprompt
             # pure
