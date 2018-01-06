@@ -1,0 +1,17 @@
+{
+  "name": "codeword",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "deploy": "pulp build -o lambda/custom/output && ask deploy --target lambda",
+    "deploy-model": "ask deploy --target model",
+    "deploy-skill": "ask deploy --target skill",
+    "test": "pulp test"
+  },
+  "author": "",
+  "license": "ISC"
+}

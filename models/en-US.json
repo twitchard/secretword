@@ -1,0 +1,1470 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "secret word",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "GiveUpIntent",
+          "samples": [
+            "I give up"
+          ]
+        },
+        { "name": "AMAZON.YesIntent",
+          "samples": []
+        },
+        { "name": "AMAZON.NoIntent",
+          "samples": []
+        },
+        {
+          "name": "GuessIntent",
+          "slots": [
+            {
+              "name": "Word",
+              "type": "FiveLetterWord"
+            }
+          ],
+          "samples": [
+            "Guess {Word}",
+            "My guess is {Word}"
+          ]
+        },
+        {
+          "name": "ThinkingIntent",
+          "samples": [
+            "I'm thinking",
+            "Still thinking"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "values": [
+            {
+              "name": {
+                "value": "about",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "above",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "after",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "again",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "agree",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "allow",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "among",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "anger",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "apple",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "basic",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "began",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "begin",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "black",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "block",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "blood",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "board",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "bread",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "break",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "bring",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "broad",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "broke",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "brown",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "build",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "carry",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "catch",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "cause",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "chair",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "chart",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "check",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "chick",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "chief",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "child",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "chord",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "claim",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "class",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "clean",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "clear",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "climb",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "clock",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "close",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "cloud",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "coast",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "color",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "could",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "count",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "cover",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "cross",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "crowd",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "dance",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "death",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "dream",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "dress",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "drink",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "drive",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "early",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "earth",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "eight",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "enemy",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "enter",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "equal",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "event",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "every",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "exact",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "favor",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "field",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "fight",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "final",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "first",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "floor",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "force",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "found",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "fresh",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "front",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "fruit",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "glass",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "grand",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "grass",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "great",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "green",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "group",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "guess",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "guide",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "happy",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "heard",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "heart",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "heavy",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "horse",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "house",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "human",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "hurry",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "large",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "laugh",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "learn",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "least",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "leave",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "level",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "light",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "major",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "match",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "meant",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "metal",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "might",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "money",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "month",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "mount",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "mouth",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "music",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "never",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "night",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "noise",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "north",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "occur",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "ocean",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "offer",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "often",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "order",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "organ",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "other",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "paint",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "paper",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "party",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "piece",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "pitch",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "place",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "plain",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "plane",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "plant",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "point",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "pound",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "power",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "press",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "print",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "prove",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "quart",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "quick",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "quiet",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "quite",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "radio",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "raise",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "range",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "reach",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "ready",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "reply",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "right",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "river",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "round",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "scale",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "score",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "sense",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "serve",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "seven",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "shall",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "shape",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "share",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "sharp",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "sheet",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "shell",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "shine",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "shore",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "short",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "shout",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "sight",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "since",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "skill",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "slave",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "sleep",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "small",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "smell",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "smile",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "solve",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "sound",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "south",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "space",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "speak",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "speed",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "spell",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "spend",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "spoke",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "stand",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "start",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "state",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "stead",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "steam",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "steel",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "stick",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "still",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "stone",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "stood",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "store",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "story",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "study",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "sugar",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "table",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "teach",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "teeth",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "thank",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "their",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "there",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "these",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "thick",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "thing",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "think",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "third",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "those",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "three",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "throw",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "total",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "touch",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "track",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "trade",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "train",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "truck",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "under",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "until",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "usual",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "value",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "visit",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "voice",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "vowel",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "watch",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "water",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "wheel",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "where",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "which",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "while",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "white",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "whole",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "whose",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "woman",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "world",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "would",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "write",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "wrong",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "wrote",
+                "synonyms": []
+              }
+            },
+            {
+              "name": {
+                "value": "young",
+                "synonyms": []
+              }
+            }
+          ],
+          "name": "FiveLetterWord"
+        }
+      ]
+    }
+  }
+}

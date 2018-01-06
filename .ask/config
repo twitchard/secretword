@@ -1,0 +1,19 @@
+{
+  "deploy_settings": {
+    "default": {
+      "skill_id": "amzn1.ask.skill.fe3eeb2f-f7eb-4be5-bcd6-076532ec60cb",
+      "was_cloned": false,
+      "merge": {
+        "skillManifest": {
+          "apis": {
+            "custom": {
+              "endpoint": {
+                "uri": "secretword"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
