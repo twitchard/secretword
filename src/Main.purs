@@ -119,8 +119,8 @@ myHandler event _ =
   where
     defaultReprompt = reprompt "Still thinking? Just say, I'm thinking."
 
-    handleEvent :: AlexaRequest → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
-    handleEvent (LaunchRequest r) = do
+    startGame :: Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
+    startGame = do
       word <- liftEff $ randomFiveLetterWord
       log $ "The word is " <> word
       emptyResponse
@@ -129,6 +129,9 @@ myHandler event _ =
         # defaultReprompt
         # keepGoing
         # pure
+
+    handleEvent :: AlexaRequest → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
+    handleEvent (LaunchRequest r) = startGame
 
     handleEvent (SessionEndedRequest r) =
       emptyResponse
@@ -159,17 +162,17 @@ myHandler event _ =
         Left _ → 
           emptyResponse
             # say "I forgot my secret word. Sorry, we'll have to start over"
-            # defaultReprompt
+            # stopGoing
             # pure
-        Right (Just true) →
-          emptyResponse
-            # say "See you again soon"
-            # pure
-        Right (Just false) → 
-          emptyResponse
-            # say "See you again soon"
-            # pure
-        Right Nothing → handleGuessIntent req
+        Right ((Just s) :: Session) →
+          if s.givingUp == true
+            then 
+              emptyResponse
+                # say "See you again soon"
+                # pure
+            else
+              handleGuessIntent req
+        Right Nothing → startGame
 
     -- handleNoIntent :: _ → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
     handleNoIntent req =
