@@ -13,7 +13,7 @@ import Data.Array (foldl, length, snoc)
 import Data.Either (Either(Right, Left))
 import Data.Foldable (sum)
 import Data.Foreign (Foreign)
-import Data.Lens (Lens', _Just, over, set)
+import Data.Lens (Lens', _Just, over, set, view)
 import Data.Lens.Record (prop)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Nullable (Nullable)
@@ -27,7 +27,7 @@ import Simple.JSON (read, write)
 import Type.Row (class RowLacks)
 import Web.AWS.Lambda (makeHandler)
 import Web.Amazon.Alexa (AlexaRequest(IntentRequest, SessionEndedRequest, LaunchRequest), AlexaResponse)
-import Web.Amazon.Alexa.Lens (_outputSpeech, _reprompt, _response, _sessionAttributes, _shouldEndSession)
+import Web.Amazon.Alexa.Lens (_body, _outputSpeech, _reprompt, _response, _sessionAttributes, _shouldEndSession)
 
 rename :: forall prev next ty input inter output
    . IsSymbol prev
@@ -114,8 +114,10 @@ addGuessToSession s = over (_sessionAttributes <<< _Just <<< _guesses) ((flip sn
 myHandler :: ∀ e. Foreign → Foreign → Aff (console :: CONSOLE, random :: RANDOM | e) Foreign
 myHandler event _ = 
   map write $ case (runExcept (read event)) of
-    Left _ → emptyResponse # say ("Error parsing Alexa event: " <> "errString") # pure
-    Right e → handleEvent e
+    Left _ → emptyResponse # say ("Error parsing Alexa event: " <> "errString") # stopGoing # pure
+    Right e → case (runExcept (read (view _body e).session.attributes)) of
+      Left _ → emptyResponse # say ("Error parsing session: " <> "errString") # stopGoing # pure
+      Right sess → handleEvent e sess
   where
     defaultReprompt = reprompt "Still thinking? Just say, I'm thinking."
 
@@ -130,94 +132,88 @@ myHandler event _ =
         # keepGoing
         # pure
 
-    handleEvent :: AlexaRequest → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
-    handleEvent (LaunchRequest r) = startGame
-
-    handleEvent (SessionEndedRequest r) =
+    handleEvent :: AlexaRequest → Session → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
+    handleEvent (LaunchRequest r) _ = startGame
+    handleEvent (SessionEndedRequest r) _ =
       emptyResponse
         # pure
-
-    handleEvent (IntentRequest r)
-      | r.request.intent.name == "AMAZON.YesIntent" = handleYesIntent r
-      | r.request.intent.name == "AMAZON.NoIntent" = handleNoIntent r
+    handleEvent (IntentRequest r) sess
+      | r.request.intent.name == "AMAZON.YesIntent" = handleYesIntent r sess
+      | r.request.intent.name == "AMAZON.NoIntent" = handleNoIntent r sess
       | r.request.intent.name == "AMAZON.HelpIntent" =
           emptyResponse
-          # say "Win the game by guessing my secret five-letter word. You can learn more about my secret word by guessing other five letter words. Each time you guess, I will tell you the total number of letters in the word you guess that are also in my secret word. Duplicate letters count add one to the total for each duplication in both the guess and the secret word. For example, if the secret word is sweet and you guess cheer, I will say 2 because both letters contain a duplicate e. But if you guessed reach, I will only say 1, because that guess contains only one e."
+            # setSession sess
+            # say "Win the game by guessing my secret five-letter word. You can learn more about my secret word by guessing other five letter words. Each time you guess, I will tell you the total number of letters in the word you guess that are also in my secret word. Duplicate letters count add one to the total for each duplication in both the guess and the secret word. For example, if the secret word is sweet and you guess cheer, I will say 2 because both letters contain a duplicate e. But if you guessed reach, I will only say 1, because that guess contains only one e."
             # keepGoing
             # defaultReprompt
             # pure
-      | r.request.intent.name == "AMAZON.StopIntent" = handleGiveUpIntent r
-      | r.request.intent.name == "GuessIntent" = handleGuessIntent r
-      | r.request.intent.name == "GiveUpIntent" = handleGiveUpIntent r
-      | r.request.intent.name == "ThinkingIntent" = handleThinkingIntent r
+      | r.request.intent.name == "AMAZON.StopIntent" = handleGiveUpIntent r sess
+      | r.request.intent.name == "GuessIntent" = handleGuessIntent r sess
+      | r.request.intent.name == "GiveUpIntent" = handleGiveUpIntent r sess
+      | r.request.intent.name == "ThinkingIntent" = handleThinkingIntent r sess
       | otherwise =
           emptyResponse
             # say "Unknown intent"
             # defaultReprompt
-            # keepGoing
-            # pure
-
-    handleYesIntent req = do
-      case runExcept (read req.session.attributes) of
-        Left _ → 
-          emptyResponse
-            # say "I forgot my secret word. Sorry, we'll have to start over"
             # stopGoing
             # pure
-        Right ((Just s) :: Session) →
-          if s.givingUp == true
-            then 
-              emptyResponse
-                # say "See you again soon"
-                # pure
-            else
-              handleGuessIntent req
-        Right Nothing → startGame
+
+    handleYesIntent r sess = do
+      case sess of
+        Just s → if s.givingUp == true
+           then 
+             emptyResponse
+               # say "See you again soon"
+               # pure
+           else
+             handleGuessIntent r sess
+        Nothing → startGame
 
     -- handleNoIntent :: _ → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
-    handleNoIntent req =
-      case runExcept (read req.session.attributes) of
-        Left _ → 
-          emptyResponse
-            # say "I forgot my secret word. Sorry, we'll have to start over"
-            # defaultReprompt
-            # pure
-        Right r → handleGuessIntent r
+    handleNoIntent r sess = 
+      case sess of
+        Just s → 
+          if s.givingUp == true
+            then emptyResponse
+              # setSession sess
+              # say "I knew you weren't a coward! Ok, what's your next guess?"
+              # keepGoing
+              # pure
+            else handleGuessIntent r sess
+        Nothing → handleGuessIntent r sess
 
     -- handleThinkingIntent :: _ → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
-    handleThinkingIntent req =
+    handleThinkingIntent _ sess =
       emptyResponse
+        # setSession sess
         # say "Ok, take a few seconds"
         # defaultReprompt
         # keepGoing
         # pure
     
     -- handleGiveUpIntent :: _ → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
-    handleGiveUpIntent req =
+    handleGiveUpIntent _ sess =
       emptyResponse
+        # setSession sess
+        # startGivingUp
         # say "Are you sure you want to give up"
         # defaultReprompt
-        # startGivingUp
         # pure
 
     -- handleGuessIntent :: _ → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
-    handleGuessIntent req =
-      case (runExcept (read req.session.attributes)) of
-        Left _ →
-          emptyResponse
-            # say "I forgot my secret word. Sorry, we'll have to start over"
-            # defaultReprompt
-            # pure
-        Right Nothing →
+    handleGuessIntent r sess =
+      case sess of
+        Nothing →
           emptyResponse
             # say "You are not playing a game right now"
-            # defaultReprompt
+            # stopGoing
             # pure
-        Right sess@(Just s) → 
-          case runExcept (read req.request.intent.slots) of
+        Just s → 
+          case runExcept (read r.request.intent.slots) of
             Left _ →
               emptyResponse
                 # say "I couldn't hear your guess -- please try again"
+                # setSession sess
                 # defaultReprompt
                 # pure
 
