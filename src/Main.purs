@@ -108,6 +108,10 @@ setSession sess ar = set (_sessionAttributes) sess ar
 startGivingUp :: AlexaResponse Session → AlexaResponse Session
 startGivingUp = set (_sessionAttributes <<< _Just <<< _givingUp) true
 
+stopGivingUp :: AlexaResponse Session → AlexaResponse Session
+stopGivingUp = set (_sessionAttributes <<< _Just <<< _givingUp) false
+
+
 addGuessToSession :: String → AlexaResponse Session → AlexaResponse Session
 addGuessToSession s = over (_sessionAttributes <<< _Just <<< _guesses) ((flip snoc) s)
 
@@ -151,6 +155,7 @@ myHandler event _ =
       | r.request.intent.name == "AMAZON.HelpIntent" =
           emptyResponse
             # setSession sess
+            # stopGivingUp
             # say "Win the game by guessing my secret five-letter word. You can learn more about my secret word by guessing other five letter words. Each time you guess, I will tell you the total number of letters in the word you guess that are also in my secret word. Duplicate letters count add one to the total for each duplication in both the guess and the secret word. For example, if the secret word is sweet and you guess cheer, I will say 2 because both letters contain a duplicate e. But if you guessed reach, I will only say 1, because that guess contains only one e."
             # keepGoing
             # defaultReprompt
@@ -185,6 +190,7 @@ myHandler event _ =
           if s.givingUp == true
             then emptyResponse
               # setSession sess
+              # stopGivingUp
               # say "I knew you weren't a coward! Ok, what's your next guess?"
               # keepGoing
               # pure
@@ -195,6 +201,7 @@ myHandler event _ =
     handleThinkingIntent _ sess =
       emptyResponse
         # setSession sess
+        # stopGivingUp
         # say "Ok, take a few seconds"
         # defaultReprompt
         # keepGoing
@@ -223,6 +230,7 @@ myHandler event _ =
               emptyResponse
                 # say "I couldn't hear your guess -- please try again"
                 # setSession sess
+                # stopGivingUp
                 # defaultReprompt
                 # pure
 
@@ -235,6 +243,7 @@ myHandler event _ =
               let simpleResponse text =
                     emptyResponse
                       # setSession sess
+                      # stopGivingUp
                       # say text
                       # defaultReprompt
                       # keepGoing
@@ -255,17 +264,22 @@ myHandler event _ =
                             <> guess
                             <> " which is not an English word I recognize. Try again."
 
-                    | guess == s.secretWord = pure $
-                        say (
-                          "You got it! Congratulations. It only took you "
-                            <> (show $ length s.guesses + 1)
-                            <> " guesses."
-                        ) $ stopGoing $ emptyResponse
+                    | guess == s.secretWord =
+                        emptyResponse
+                          # say (
+                              "You got it! Congratulations. It only took you "
+                                <> (show $ length s.guesses + 1)
+                                <> " guesses."
+                            )
+                          # stopGoing
+                          # pure
+
                     | otherwise = do
                         let n = lettersInCommon guess s.secretWord
                         let letterWord = if n == 1 then "letter" else "letters"
                         emptyResponse
                           # setSession (over (_Just <<< _guesses) ((flip snoc) guess) sess)
+                          # stopGivingUp
                           # say (
                               "You guessed the word "
                                 <> guess
