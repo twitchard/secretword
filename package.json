@@ -13,5 +13,8 @@
     "test": "pulp test"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.177.0"
+  }
 }

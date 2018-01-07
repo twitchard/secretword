@@ -2,6 +2,7 @@ module Main where
 
 import Prelude
 
+import AWS.DynamoDB (DYNAMO, DynamoClient, deleteRecord, getClient, loadRecord, saveRecord)
 import Control.Monad.Aff (Aff, Fiber)
 import Control.Monad.Aff.Console (CONSOLE, log)
 import Control.Monad.Eff.Class (liftEff)
@@ -12,9 +13,12 @@ import Control.Monad.Except (runExcept)
 import Data.Array (foldl, length, snoc)
 import Data.Either (Either(Right, Left))
 import Data.Foldable (sum)
-import Data.Foreign (Foreign)
+import Data.Foreign (Foreign, ForeignError, renderForeignError)
+import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Eq (genericEq)
 import Data.Lens (Lens', _Just, over, set, view)
 import Data.Lens.Record (prop)
+import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Nullable (Nullable)
 import Data.Record (delete, get, insert)
@@ -23,7 +27,7 @@ import Data.String as Str
 import Data.String.Utils (toCharArray)
 import Data.Symbol (class IsSymbol, SProxy(SProxy))
 import SecretWord.Words (randomFiveLetterWord, isRealWord)
-import Simple.JSON (read, write)
+import Simple.JSON (class ReadForeign, class WriteForeign, read, write, writeJSON)
 import Type.Row (class RowLacks)
 import Web.AWS.Lambda (makeHandler)
 import Web.Amazon.Alexa (AlexaRequest(IntentRequest, SessionEndedRequest, LaunchRequest), AlexaResponse)
@@ -47,7 +51,25 @@ rename prev next record =
     inter :: Record inter
     inter = delete prev record
 
-type Session = Maybe { secretWord :: String, guesses :: Array String, givingUp :: Boolean }
+type Session = Maybe { secretWord :: String, guesses :: Array String, status :: Status}
+data Status = Normal | GivingUp | Loading
+
+derive instance genericStatus :: Generic Status _
+instance eqStatus :: Eq Status where
+  eq = genericEq
+
+instance wfStatus :: WriteForeign Status where
+  writeImpl Normal = write "normal"
+  writeImpl GivingUp = write "GivingUp"
+  writeImpl Loading = write "Loading"
+
+instance rfStatus :: ReadForeign Status where
+  readImpl f = read f <#> readStatus where
+    readStatus s
+      | s == "GivingUp" = GivingUp
+      | s == "Loading" = Loading
+      | otherwise = Normal
+  
 
 _secretWord :: ∀ r. Lens' {secretWord :: String | r } String
 _secretWord = prop (SProxy :: SProxy "secretWord")
@@ -55,8 +77,8 @@ _secretWord = prop (SProxy :: SProxy "secretWord")
 _guesses :: ∀ r. Lens' {guesses :: Array String | r } (Array String)
 _guesses = prop (SProxy :: SProxy "guesses")
 
-_givingUp :: ∀ r. Lens' {givingUp :: Boolean | r } Boolean
-_givingUp = prop (SProxy :: SProxy "givingUp")
+_status :: ∀ r. Lens' {status :: Status | r } Status
+_status = prop (SProxy :: SProxy "status")
 
 lettersInCommon :: String → String → Int
 lettersInCommon w1 w2 = 
@@ -90,6 +112,51 @@ emptyResponse =
     }
   }
 
+saveSession :: ∀ e. DynamoClient → String → Session → Aff (console :: CONSOLE, dynamo :: DYNAMO | e) Unit
+saveSession cli userId sess = do
+  case sess of
+    Nothing → pure unit
+    Just rec → do
+      log $ "Saving session: " <> (writeJSON 
+                                    { userId : userId
+                                    , guesses: rec.guesses
+                                    , secretWord : rec.secretWord
+                                    , status : Normal
+                                    }
+                                  )
+      saveRecord
+        cli
+        "secretword__Sessions"
+        ( write
+          { userId : userId
+          , guesses: rec.guesses
+          , secretWord : rec.secretWord
+          , status : "normal"
+          }
+        )
+
+loadSession :: ∀ e. DynamoClient → String → Aff (console :: CONSOLE, dynamo :: DYNAMO | e) (Maybe Session)
+loadSession cli id = do
+  rec <- loadRecord
+    cli
+    "secretword__Sessions"
+    ( write
+      { userId : id }
+    )
+  log ("the session was " <> (writeJSON rec))
+  case runExcept (read rec) of
+    Left _ → pure Nothing
+    Right (result :: {"Item" :: Session})→ pure $ Just (result."Item")
+
+eraseSession :: ∀ e. DynamoClient → String → Aff (console :: CONSOLE, dynamo :: DYNAMO | e) Unit
+eraseSession cli id = do
+  deleteRecord
+    cli
+    "secretword__Sessions"
+    ( write
+      { userId : id }
+    )
+
 say :: ∀ a . String → AlexaResponse a → AlexaResponse a
 say speech ar = set (_response <<< _outputSpeech) (Just { type : "PlainText", text : speech }) ar
 
@@ -106,105 +173,154 @@ setSession :: Session → AlexaResponse Session → AlexaResponse Session
 setSession sess ar = set (_sessionAttributes) sess ar
 
 startGivingUp :: AlexaResponse Session → AlexaResponse Session
-startGivingUp = set (_sessionAttributes <<< _Just <<< _givingUp) true
+startGivingUp = set (_sessionAttributes <<< _Just <<< _status) GivingUp
 
-stopGivingUp :: AlexaResponse Session → AlexaResponse Session
-stopGivingUp = set (_sessionAttributes <<< _Just <<< _givingUp) false
+startLoading :: AlexaResponse Session → AlexaResponse Session
+startLoading = set (_sessionAttributes <<< _Just <<< _status) Loading
+
+backToNormal :: AlexaResponse Session → AlexaResponse Session
+backToNormal = set (_sessionAttributes <<< _Just <<< _status) Normal
 
 
 addGuessToSession :: String → AlexaResponse Session → AlexaResponse Session
 addGuessToSession s = over (_sessionAttributes <<< _Just <<< _guesses) ((flip snoc) s)
 
-myHandler :: ∀ e. Foreign → Foreign → Aff (console :: CONSOLE, random :: RANDOM | e) Foreign
+myHandler :: ∀ e. Foreign → Foreign → Aff (dynamo :: DYNAMO, console :: CONSOLE, random :: RANDOM | e) Foreign
 myHandler event _ = 
   map write $ case (runExcept (read event)) of
-    Left _ →
+    Left errs → do
+      log ("Error parsing Alexa event: " <> (renderErrs errs) <> ", event" <> (writeJSON event))
       emptyResponse
-        # say ("Error parsing Alexa event: " <> "errString")
+        # say ("Error parsing Alexa event")
         # stopGoing
         # pure
     Right e → case (runExcept (read (view _body e).session.attributes)) of
-      Left _ → 
+      Left errs → 
         emptyResponse
-          # say ("Error parsing session: " <> "errString")
+          # say ("Error parsing session: " <> (renderErrs errs))
           # stopGoing
           # pure
-      Right sess → handleEvent e sess
+      Right sess → do 
+        log $ writeJSON event
+        handleEvent e sess
   where
+    renderErrs :: NonEmptyList ForeignError → String
+    renderErrs errs =
+      map renderForeignError errs
+        # foldl (\x y → x <> ", " <> y) ""
+    dynamoClient :: DynamoClient
+    dynamoClient = getClient
+      { region : "us-east-1"
+      , endpoint : Nothing
+      , apiVersion : Nothing
+      }
     defaultReprompt = reprompt "Still thinking? Just say, I'm thinking."
 
-    startGame :: Unit → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
+    startGame :: Unit → Aff (dynamo :: DYNAMO, console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
     startGame _ = do
       word <- liftEff $ randomFiveLetterWord
       log $ "The word is " <> word
       emptyResponse
-        # setSession (Just { secretWord : word, guesses : [], givingUp: false })
+        # setSession (Just { secretWord : word, guesses : [], status : Normal })
         # say "OK! I've chosen a word. Play the game by guessing five-letter words. I will tell you the number of letters your guess and the secret word have in common. Say \"help me\" for a full description of the rules."
         # defaultReprompt
         # keepGoing
         # pure
 
-    handleEvent :: AlexaRequest → Session → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
-    handleEvent (LaunchRequest r) _ = startGame unit
-    handleEvent (SessionEndedRequest r) _ =
+    handleEvent :: AlexaRequest → Session → Aff (dynamo :: DYNAMO, console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
+    handleEvent (LaunchRequest r) _ = do
+      log "SessionLaunched"
+      oldSess <- loadSession dynamoClient r.session.user.userId
+      case oldSess of
+        Nothing → startGame unit
+        Just (sess :: Session) →
+          case sess of
+            Nothing -> startGame unit
+            Just _ →
+              emptyResponse
+                # say "Looks like you didn't finish your previous game. Would you like to pick up where we left off last time?"
+                # setSession sess
+                # startLoading
+                # reprompt "Looks like you didn't finish your previous game. Would you like to pick up where we left off last time?"
+                # pure
+
+    handleEvent (SessionEndedRequest r) sess = do
+      log "SessionEnded"
+      saveSession dynamoClient r.session.user.userId sess
       emptyResponse
         # pure
-    handleEvent (IntentRequest r) sess
-      | r.request.intent.name == "AMAZON.YesIntent" = handleYesIntent r sess
-      | r.request.intent.name == "AMAZON.NoIntent" = handleNoIntent r sess
-      | r.request.intent.name == "AMAZON.HelpIntent" =
-          emptyResponse
-            # setSession sess
-            # stopGivingUp
-            # say "Win the game by guessing my secret five-letter word. You can learn more about my secret word by guessing other five letter words. Each time you guess, I will tell you the total number of letters in the word you guess that are also in my secret word. Duplicate letters count add one to the total for each duplication in both the guess and the secret word. For example, if the secret word is sweet and you guess cheer, I will say 2 because both letters contain a duplicate e. But if you guessed reach, I will only say 1, because that guess contains only one e."
-            # keepGoing
-            # defaultReprompt
-            # pure
-      | r.request.intent.name == "AMAZON.StopIntent" = handleGiveUpIntent r sess
-      | r.request.intent.name == "GuessIntent" = handleGuessIntent r sess
-      | r.request.intent.name == "GiveUpIntent" = handleGiveUpIntent r sess
-      | r.request.intent.name == "ThinkingIntent" = handleThinkingIntent r sess
-      | otherwise =
-          emptyResponse
-            # say "Unknown intent"
-            # defaultReprompt
-            # stopGoing
-            # pure
+
+    handleEvent (IntentRequest r) sess = do
+      log "IntentRequested"
+      handleEventHelper
+      where 
+        handleEventHelper
+          | r.request.intent.name == "AMAZON.YesIntent" = handleYesIntent r sess
+          | r.request.intent.name == "AMAZON.NoIntent" = handleNoIntent r sess
+          | r.request.intent.name == "AMAZON.HelpIntent" =
+              emptyResponse
+                # setSession sess
+                # backToNormal
+                # say "Win the game by guessing my secret five-letter word. You can learn more about my secret word by guessing other five letter words. Each time you guess, I will tell you the total number of letters in the word you guess that are also in my secret word. Duplicate letters count add one to the total for each duplication in both the guess and the secret word. For example, if the secret word is sweet and you guess cheer, I will say 2 because both letters contain a duplicate e. But if you guessed reach, I will only say 1, because that guess contains only one e."
+                # keepGoing
+                # defaultReprompt
+                # pure
+          | r.request.intent.name == "AMAZON.StopIntent" = handleGiveUpIntent r sess
+          | r.request.intent.name == "GuessIntent" = handleGuessIntent r sess
+          | r.request.intent.name == "GiveUpIntent" = handleGiveUpIntent r sess
+          | r.request.intent.name == "ThinkingIntent" = handleThinkingIntent r sess
+          | otherwise =
+              emptyResponse
+                # say "Unknown intent"
+                # stopGoing
+                # pure
 
     handleYesIntent r sess = do
       case sess of
-        Just s → if s.givingUp == true
-           then 
-             emptyResponse
-               # say ("Ha ha, you lose. My secret word was " <> s.secretWord)
-               # stopGoing
-               # pure
-           else
+        Just s → case s.status of
+          GivingUp → do
+            eraseSession dynamoClient r.session.user.userId
+            emptyResponse
+              # say ("Ha ha, you lose. My secret word was " <> s.secretWord)
+              # stopGoing
+              # pure
+          Loading →
+            emptyResponse
+              # say ("All right! I've kept your secret word from last time. What would you like to guess?")
+              # setSession sess
+              # keepGoing
+              # defaultReprompt
+              # pure
+          Normal →
              handleGuessIntent r sess
         Nothing → startGame unit
 
     -- handleNoIntent :: _ → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
     handleNoIntent r sess = 
       case sess of
-        Just s → 
-          if s.givingUp == true
-            then emptyResponse
+        Just s → case s.status of
+          GivingUp →
+            emptyResponse
               # setSession sess
-              # stopGivingUp
+              # backToNormal
               # say "I knew you weren't a coward! Ok, what's your next guess?"
               # keepGoing
+              # defaultReprompt
               # pure
-            else handleGuessIntent r sess
+          Loading → do
+            eraseSession dynamoClient r.session.user.userId
+            startGame unit
+          Normal → handleGuessIntent r sess
         Nothing → handleGuessIntent r sess
 
     -- handleThinkingIntent :: _ → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
     handleThinkingIntent _ sess =
       emptyResponse
         # setSession sess
-        # stopGivingUp
+        # backToNormal
         # say "Ok, take a few seconds"
-        # defaultReprompt
         # keepGoing
+        # defaultReprompt
         # pure
     
     -- handleGiveUpIntent :: _ → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
@@ -230,7 +346,7 @@ myHandler event _ =
               emptyResponse
                 # say "I couldn't hear your guess -- please try again"
                 # setSession sess
-                # stopGivingUp
+                # backToNormal
                 # defaultReprompt
                 # pure
 
@@ -243,7 +359,7 @@ myHandler event _ =
               let simpleResponse text =
                     emptyResponse
                       # setSession sess
-                      # stopGivingUp
+                      # backToNormal
                       # say text
                       # defaultReprompt
                       # keepGoing
@@ -264,7 +380,9 @@ myHandler event _ =
                             <> guess
                             <> " which is not an English word I recognize. Try again."
 
-                    | guess == s.secretWord =
+                    | guess == s.secretWord = do
+
+                        eraseSession dynamoClient r.session.user.userId
                         emptyResponse
                           # say (
                               "You got it! Congratulations. It only took you "
@@ -279,7 +397,7 @@ myHandler event _ =
                         let letterWord = if n == 1 then "letter" else "letters"
                         emptyResponse
                           # setSession (over (_Just <<< _guesses) ((flip snoc) guess) sess)
-                          # stopGivingUp
+                          # backToNormal
                           # say (
                               "You guessed the word "
                                 <> guess
@@ -289,9 +407,10 @@ myHandler event _ =
                                 <> "in common with my secret word"
                             )
                           # keepGoing
+                          # defaultReprompt
                           # pure
               handleGuess
 
                   
-handler :: forall eff. EffFn3 ( console :: CONSOLE , random :: RANDOM | eff) Foreign Foreign (EffFn2 ( console :: CONSOLE , random :: RANDOM | eff) (Nullable Error) Foreign Unit) (Fiber ( console :: CONSOLE , random :: RANDOM | eff) Unit)
+handler :: forall eff. EffFn3 ( dynamo :: DYNAMO, console :: CONSOLE , random :: RANDOM | eff) Foreign Foreign (EffFn2 ( dynamo :: DYNAMO, console :: CONSOLE , random :: RANDOM | eff) (Nullable Error) Foreign Unit) (Fiber ( dynamo :: DYNAMO, console :: CONSOLE , random :: RANDOM | eff) Unit)
 handler = makeHandler myHandler
