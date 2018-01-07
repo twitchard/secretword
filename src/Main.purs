@@ -171,7 +171,7 @@ myHandler event _ =
         Just s → if s.givingUp == true
            then 
              emptyResponse
-               # say "Ha ha, you lose. My secret word was " <> s.secretWord
+               # say ("Ha ha, you lose. My secret word was " <> s.secretWord)
                # stopGoing
                # pure
            else
