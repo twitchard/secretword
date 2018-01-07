@@ -171,7 +171,7 @@ myHandler event _ =
         Just s → if s.givingUp == true
            then 
              emptyResponse
-               # say "See you again soon"
+               # say "Ha ha, you lose. My secret word was " <> s.secretWord
                # stopGoing
                # pure
            else
@@ -243,7 +243,7 @@ myHandler event _ =
               let handleGuess
                     | l /= 5 = pure $
                         simpleResponse $
-                          "You guessed the word"
+                          "You guessed the word "
                             <> guess
                             <> " which is "
                             <> (show l)
