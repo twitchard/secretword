@@ -114,9 +114,17 @@ addGuessToSession s = over (_sessionAttributes <<< _Just <<< _guesses) ((flip sn
 myHandler :: ∀ e. Foreign → Foreign → Aff (console :: CONSOLE, random :: RANDOM | e) Foreign
 myHandler event _ = 
   map write $ case (runExcept (read event)) of
-    Left _ → emptyResponse # say ("Error parsing Alexa event: " <> "errString") # stopGoing # pure
+    Left _ →
+      emptyResponse
+        # say ("Error parsing Alexa event: " <> "errString")
+        # stopGoing
+        # pure
     Right e → case (runExcept (read (view _body e).session.attributes)) of
-      Left _ → emptyResponse # say ("Error parsing session: " <> "errString") # stopGoing # pure
+      Left _ → 
+        emptyResponse
+          # say ("Error parsing session: " <> "errString")
+          # stopGoing
+          # pure
       Right sess → handleEvent e sess
   where
     defaultReprompt = reprompt "Still thinking? Just say, I'm thinking."
