@@ -14,50 +14,63 @@ import Data.Array (foldl, length, snoc)
 import Data.Either (Either(Right, Left))
 import Data.Foldable (sum)
 import Data.Foreign (Foreign, ForeignError, renderForeignError)
-import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Eq (genericEq)
 import Data.Lens (Lens', _Just, over, set, view)
 import Data.Lens.Record (prop)
 import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Nullable (Nullable)
-import Data.Record (delete, get, insert)
 import Data.StrMap (StrMap, alter, empty, keys, lookup)
 import Data.String as Str
 import Data.String.Utils (toCharArray)
-import Data.Symbol (class IsSymbol, SProxy(SProxy))
+import Data.Symbol (SProxy(SProxy))
 import SecretWord.Words (randomFiveLetterWord, isRealWord)
 import Simple.JSON (class ReadForeign, class WriteForeign, read, write, writeJSON)
-import Type.Row (class RowLacks)
 import Web.AWS.Lambda (makeHandler)
 import Web.Amazon.Alexa (AlexaRequest(IntentRequest, SessionEndedRequest, LaunchRequest), AlexaResponse)
 import Web.Amazon.Alexa.Lens (_body, _outputSpeech, _reprompt, _response, _sessionAttributes, _shouldEndSession)
 
-rename :: forall prev next ty input inter output
-   . IsSymbol prev
-  => IsSymbol next
-  => RowCons prev ty inter input
-  => RowLacks prev inter
-  => RowCons next ty inter output
-  => RowLacks next inter
-  => SProxy prev
-  -> SProxy next
-  -> Record input
-  -> Record output
-rename prev next record =
-  insert next value inter
-  where
-    value = get prev record
-    inter :: Record inter
-    inter = delete prev record
+{- A Session is a piece of state defined and managed by an Alexa skill. It is persisted
+   by Alexa throughout the course of a user's continuous interaction with the skill.
+   We keep track of the state of our game inside the session. Furthermore, in cases where
+   the user stops interacting with the skill, we persist the session record in DynamoDB
+   to give the user the option of continuing the game later.
+   
+   The state for our game is pretty simple. There is the secret word that is chosen
+   when the user first begins to interact with the skill. Furthermore, there is a
+   list of the words the user has guessed. Right now this is used only to tell the
+   user once they win how many guesses it took them. The final piece of state, 'status'
+   is used to keep track of when we asked the user a yes or no question.
+-}
+type Session = Maybe
+  { secretWord :: String
+  , guesses :: Array String
+  , status :: Status
+  }
 
-type Session = Maybe { secretWord :: String, guesses :: Array String, status :: Status}
+{- _guesses is a "Lens". Lenses are a cool trick that let you
+   access and modify specific parts of a datatype less verbosely.
+-}
+_guesses :: ∀ r. Lens' {guesses :: Array String | r } (Array String)
+_guesses = prop (SProxy :: SProxy "guesses")
+
+{- status is also a lens
+-}
+_status :: ∀ r. Lens' {status :: Status | r } Status
+_status = prop (SProxy :: SProxy "status")
+
+
+{- When status is Normal it means the last thing we asked/told the user
+   was not a yes or no question. When status is GivingUp that means the
+   last thing we asked the user was "do you want to give up?". When
+   status is Loading" it means the last thing we asked the user was
+   "do you want to pick up and continue the game from where we left off
+   last time?"
+-}
 data Status = Normal | GivingUp | Loading
 
-derive instance genericStatus :: Generic Status _
-instance eqStatus :: Eq Status where
-  eq = genericEq
-
+{- WriteForeign and ReadForeign instances for the Status type determine how
+   the "status" datatype should be translated to and from javascript.
+-}
 instance wfStatus :: WriteForeign Status where
   writeImpl Normal = write "normal"
   writeImpl GivingUp = write "GivingUp"
@@ -69,19 +82,17 @@ instance rfStatus :: ReadForeign Status where
       | s == "GivingUp" = GivingUp
       | s == "Loading" = Loading
       | otherwise = Normal
-  
 
-_secretWord :: ∀ r. Lens' {secretWord :: String | r } String
-_secretWord = prop (SProxy :: SProxy "secretWord")
 
-_guesses :: ∀ r. Lens' {guesses :: Array String | r } (Array String)
-_guesses = prop (SProxy :: SProxy "guesses")
-
-_status :: ∀ r. Lens' {status :: Status | r } Status
-_status = prop (SProxy :: SProxy "status")
-
+{- This function defines the core of the game's logic. Given two words, how many letters
+   do they have in common? (Where duplicate letters contribute to the total to the extent
+   that both words contain the duplication).
+-}
 lettersInCommon :: String → String → Int
 lettersInCommon w1 w2 = 
+  -- Build two histograms, h1 and h2, that represent the counts of letters in w1 and w2, respectively.
+  -- then, for each letter in w1, look the letter up in both histograms take the smaller of the two counts.
+  -- Sum the resulting list, and that is the reported total.
   keys h1
     # map (\c →
         min 
@@ -95,11 +106,16 @@ lettersInCommon w1 w2 =
     increment (Just x) = Just (x+1)
 
     histogram :: String → StrMap Int
+    -- There has got to be a more intelligible way to write this, lol.
     histogram w = foldl (\acc f → f acc) empty (map (alter increment) (toCharArray w))
 
     h1 = histogram w1
     h2 = histogram w2
 
+{-
+  An empty AlexaResponse. 
+-}
+--  TODO: It's an error for a response to lack both outputSpeech and a card. That would be great to enforce via types.
 emptyResponse :: AlexaResponse Session
 emptyResponse =
   { version : "1.0"
@@ -112,6 +128,9 @@ emptyResponse =
     }
   }
 
+{-
+  Persists a session record as a document in the DynamoDB secretword__Sessions table, which is assumed to exist.
+-}
 saveSession :: ∀ e. DynamoClient → String → Session → Aff (console :: CONSOLE, dynamo :: DYNAMO | e) Unit
 saveSession cli userId sess = do
   case sess of
@@ -134,6 +153,10 @@ saveSession cli userId sess = do
           , status : "normal"
           }
         )
+{-
+  Looks up a session by the userId field in the DynamoDB secretword__Sessions table. Will
+  return Nothing if no session could be found.
+-}
 
 loadSession :: ∀ e. DynamoClient → String → Aff (console :: CONSOLE, dynamo :: DYNAMO | e) (Maybe Session)
 loadSession cli id = do
@@ -148,6 +171,9 @@ loadSession cli id = do
     Left _ → pure Nothing
     Right (result :: {"Item" :: Session})→ pure $ Just (result."Item")
 
+{-
+  Deletes a session by userId from the DynamoDB secretword__Sessions table.
+-}
 eraseSession :: ∀ e. DynamoClient → String → Aff (console :: CONSOLE, dynamo :: DYNAMO | e) Unit
 eraseSession cli id = do
   deleteRecord
@@ -157,36 +183,89 @@ eraseSession cli id = do
       { userId : id }
     )
 
+{-
+  Augments an AlexaResponse with PlainText speech corresponding to the provided string. That is,
+  it returns an AlexaResponse modified such that Alexa will "say" the provided string.
+-}
+-- TODO: It's probably a mistake for the input to this function to be an AlexaResponse that
+-- already has outputSpeech set. It would be great to be able to enforce via types that
+-- outputSpeech is only set once in the course of constructing an AlexaResponse.
 say :: ∀ a . String → AlexaResponse a → AlexaResponse a
 say speech ar = set (_response <<< _outputSpeech) (Just { type : "PlainText", text : speech }) ar
 
+{-
+  Augments an AlexaResponse with a reprompt that includes PlainText outputSpeech corresponding
+  to the provided string. Alexa will deliver the reprompt if the user says nothing for 8 seconds.
+-}
+-- TODO: Similarly to 'say', it would be great to enforce that reprompt only gets set once.
 reprompt :: ∀ a . String → AlexaResponse a → AlexaResponse a
 reprompt speech ar = set (_response <<< _reprompt) (Just { outputSpeech : { type : "PlainText", text : speech }}) ar
 
+{- Sets the 'shouldEndSession' boolean on the AlexaResponse to false. This will cause
+   Alexa, after she has delivered the response, to listen for the user's next utterance
+   and deliver it to the skill. The user need not say the wake word again. Furthermore,
+   on the user's next utterance, the AlexaRequest provided to the skill will contain
+   whatever 'session' object is attached to this AlexaResponse.
+-}
 keepGoing :: ∀ a. AlexaResponse a → AlexaResponse a
 keepGoing ar = set (_response <<< _shouldEndSession) false ar
 
+{- Sets the 'shouldEndSession' boolean on the AlexaResponse to false. This will cause
+   Alexa not to listen for another utterance after the response is delivered. If the
+   user wishes to continue interacting with the skill, he or she will have to say 
+   the wake word (Alexa) and invoke the skill by name
+-}
 stopGoing :: ∀ a. AlexaResponse a → AlexaResponse a
 stopGoing ar = set (_response <<< _shouldEndSession) true ar
 
+{- Replaces the 'session' on the AlexaResponse with the provided value
+-}
 setSession :: Session → AlexaResponse Session → AlexaResponse Session
 setSession sess ar = set (_sessionAttributes) sess ar
 
+{- Modifies the 'session' on the AlexaResponse to have the 'GivingUp' status. The GivingUp
+  status is a signal to the program when handling the next utterance in the session that,
+  if the next utterance is determined by Alexa to be an "AMAZON.YesIntent" (i.e. Alexa thinks
+  the user said something like "yes") this should be interpreted as the user saying "yes,
+  I wish to give up". Similarly, "AMAZON.NoIntent" should be interpreted as the user saying
+  "no, I do not wish to give up".
+-}
 startGivingUp :: AlexaResponse Session → AlexaResponse Session
 startGivingUp = set (_sessionAttributes <<< _Just <<< _status) GivingUp
 
+{- Modifies the 'session' on the AlexaResponse to have the 'Loading' status, which is
+   a signal to this program if the next utterance is an "AMAZON.YesIntent" is should
+   be interpreted as "yes, I wish to pick up from where I left off last time" and if
+   the next utterance is an "AMAZON.NoIntent" it should be interpreted as
+   "no, I do not wish to pick up from where I left off last time.
+-}
 startLoading :: AlexaResponse Session → AlexaResponse Session
 startLoading = set (_sessionAttributes <<< _Just <<< _status) Loading
 
+{- Modifies the 'session' on the AlexaResponse to have the 'Normal' status. This is
+  a signal to the program in handling the next utterance in the session that we did
+  not ask a yes or no question -- so if the user's next utterance is determined by Alexa
+  to be an "AMAZON.YesIntent" or "AMAZON.NoIntent" -- it doesn't really make any sense.
+  We should probably assume that the user is guessing trying to guess a word.
+-}
 backToNormal :: AlexaResponse Session → AlexaResponse Session
 backToNormal = set (_sessionAttributes <<< _Just <<< _status) Normal
 
-
+{- Appends a word to the 'guesses' array on the session object.
+-}
 addGuessToSession :: String → AlexaResponse Session → AlexaResponse Session
 addGuessToSession s = over (_sessionAttributes <<< _Just <<< _guesses) ((flip snoc) s)
 
+{- This function is the entry point into the application. Every time a user interacts with the
+   skill, this function is executed, receiving the (unparsed) AWS Lambda "event" and "context"
+   objects.
+
+   (I'm lying. Strictly speaking the *actual* entry point is the 'handler' function at the bottom
+   of the file, which is produced by uncurrying this function. But why speak strictly?)
+-}
 myHandler :: ∀ e. Foreign → Foreign → Aff (dynamo :: DYNAMO, console :: CONSOLE, random :: RANDOM | e) Foreign
 myHandler event _ = 
+  -- First, deserialize the 'event' object passed into the AWS handler into an AlexaRequest
   map write $ case (runExcept (read event)) of
     Left errs → do
       log ("Error parsing Alexa event: " <> (renderErrs errs) <> ", event" <> (writeJSON event))
@@ -194,39 +273,70 @@ myHandler event _ =
         # say ("Error parsing Alexa event")
         # stopGoing
         # pure
-    Right e → case (runExcept (read (view _body e).session.attributes)) of
-      Left errs → 
-        emptyResponse
-          # say ("Error parsing session: " <> (renderErrs errs))
-          # stopGoing
-          # pure
-      Right sess → do 
-        log $ writeJSON event
-        handleEvent e sess
+    Right e →
+      -- Then, after deserializing the event, the resulting record will have a 'sessionAttributes'
+      -- field (.session.attributes that will) be of type Foreign, and it should be deserializable
+      -- into our Session type.
+      case (runExcept (read (view _body e).session.attributes)) of
+        Left errs → 
+          emptyResponse
+            # say ("Error parsing session: " <> (renderErrs errs))
+            # stopGoing
+            # pure
+        Right sess → do 
+          log $ writeJSON event
+          -- Pass the deserialized AlexaRequest and Session into the handleEvent function, which
+          -- defines the logic of what to actually do when executing our skill.
+          handleEvent e sess
   where
+    {- When deserialization fails, typically you receive a non-empty list of ForeignErrors.
+       This is a convenient function that converts such a list into a string that we can then log.
+    -}
     renderErrs :: NonEmptyList ForeignError → String
     renderErrs errs =
       map renderForeignError errs
         # foldl (\x y → x <> ", " <> y) ""
+
+    {- The dynamoClient is used to make requests to DynamoDB. If your AWS Lambda function has
+       permissions configured correctly, you should not need to provide any configuration beyond
+       "region". The AWS sdk will magically just work.
+       
+       Similarly, if you have an appropriate file in $HOME/.aws/config on your local development
+       machine, you will be able to run the process locally and magically be able to access DynamoDB.
+    -}
     dynamoClient :: DynamoClient
     dynamoClient = getClient
       { region : "us-east-1"
       , endpoint : Nothing
       , apiVersion : Nothing
       }
+
+    {- Annoyingly, Alexa times out after 8 seconds. Often, that's not enough time for the user to
+       formulate their guess. To mitigate this problem, after every attempted guess we can set a
+       reprompt to annoy the user and prompt them to interact and avoid timing out. Even if the user
+       chooses not to say "I'm thinking", this effectively doubles the time they have to respond to
+       16 seconds.
+    -}
     defaultReprompt = reprompt "Still thinking? Just say, I'm thinking."
 
+    {- This function handles randomly selecting the five letter word, initializing an empty session
+       and producing an introductory AlexaResponse.
+    -}
     startGame :: Unit → Aff (dynamo :: DYNAMO, console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
     startGame _ = do
       word <- liftEff $ randomFiveLetterWord
       log $ "The word is " <> word
       emptyResponse
         # setSession (Just { secretWord : word, guesses : [], status : Normal })
-        # say "OK! I've chosen a word. Play the game by guessing five-letter words. I will tell you the number of letters your guess and the secret word have in common. Say \"help me\" for a full description of the rules."
+        # say "OK! I've chosen a word. Play the game by guessing five-letter words. Say \"help me\" for a full description of the rules."
         # defaultReprompt
         # keepGoing
         # pure
 
+    {- handleEvent is the central definition of the skill's logic. As you can see from the type
+       signature, it is responsible for producing an AlexaResponse based on the incoming
+       AlexaRequest and current Session (and the state of dynamoDB and the random number generator)
+    -}
     handleEvent :: AlexaRequest → Session → Aff (dynamo :: DYNAMO, console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
     handleEvent (LaunchRequest r) _ = do
       log "SessionLaunched"
@@ -261,7 +371,13 @@ myHandler event _ =
               emptyResponse
                 # setSession sess
                 # backToNormal
-                # say "Win the game by guessing my secret five-letter word. You can learn more about my secret word by guessing other five letter words. Each time you guess, I will tell you the total number of letters in the word you guess that are also in my secret word. Duplicate letters count add one to the total for each duplication in both the guess and the secret word. For example, if the secret word is sweet and you guess cheer, I will say 2 because both letters contain a duplicate e. But if you guessed reach, I will only say 1, because that guess contains only one e."
+                # say ("Play the game by guessing five-letter words." <>
+                       "Every time you guess a word, I will tell you how many letters of your guess are also contained in my secret word." <>
+                       "When you guess the secret word, you win!" <>
+                       "Try to do it in as few guesses as possible." <>
+                       "For example, you can guess a word by saying \"I guess peach\"" <>
+                       "You can also say, \"I give up\" and I will tell you my word."
+                  )
                 # keepGoing
                 # defaultReprompt
                 # pure
@@ -281,12 +397,12 @@ myHandler event _ =
           GivingUp → do
             eraseSession dynamoClient r.session.user.userId
             emptyResponse
-              # say ("Ha ha, you lose. My secret word was " <> s.secretWord)
+              # say ("Better luck next time! My secret word was " <> s.secretWord)
               # stopGoing
               # pure
           Loading →
             emptyResponse
-              # say ("All right! I've kept your secret word from last time. What would you like to guess?")
+              # say ("All right! I've remembered your secret word from last time. What would you like to guess?")
               # setSession sess
               # keepGoing
               # defaultReprompt
@@ -295,7 +411,6 @@ myHandler event _ =
              handleGuessIntent r sess
         Nothing → startGame unit
 
-    -- handleNoIntent :: _ → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
     handleNoIntent r sess = 
       case sess of
         Just s → case s.status of
@@ -303,7 +418,7 @@ myHandler event _ =
             emptyResponse
               # setSession sess
               # backToNormal
-              # say "I knew you weren't a coward! Ok, what's your next guess?"
+              # say "I knew you were too brave to give up! Ok, what's your next guess?"
               # keepGoing
               # defaultReprompt
               # pure
@@ -313,7 +428,6 @@ myHandler event _ =
           Normal → handleGuessIntent r sess
         Nothing → handleGuessIntent r sess
 
-    -- handleThinkingIntent :: _ → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
     handleThinkingIntent _ sess =
       emptyResponse
         # setSession sess
@@ -323,7 +437,6 @@ myHandler event _ =
         # defaultReprompt
         # pure
     
-    -- handleGiveUpIntent :: _ → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
     handleGiveUpIntent _ sess =
       emptyResponse
         # setSession sess
@@ -332,7 +445,6 @@ myHandler event _ =
         # defaultReprompt
         # pure
 
-    -- handleGuessIntent :: _ → Aff (console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
     handleGuessIntent r sess =
       case sess of
         Nothing →
@@ -352,8 +464,7 @@ myHandler event _ =
 
             Right slots → do
               let guess = slots
-                    # rename (SProxy :: SProxy "Word") (SProxy :: SProxy "word")
-                    # \(x :: {"word" :: { value :: String }}) → x.word.value
+                    # \(x :: {"Word" :: { value :: String }}) → x."Word".value
                     # Str.toLower
 
               let simpleResponse text =
