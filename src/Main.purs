@@ -445,11 +445,11 @@ myHandler event _ =
       emptyResponse
         # setSession sess
         # backToNormal
-        # say ("Play the game by guessing five-letter words." <>
-               "Every time you guess a word, I will tell you how many letters of your guess are also contained in my secret word." <>
-               "When you guess the secret word, you win!" <>
-               "Try to do it in as few guesses as possible." <>
-               "For example, you can guess a word by saying \"I guess peach\"" <>
+        # say ("Play the game by guessing five-letter words. " <>
+               "Every time you guess a word, I will tell you how many letters of your guess are also contained in my secret word. " <>
+               "When you guess the secret word, you win! " <>
+               "Try to do it in as few guesses as possible. " <>
+               "For example, you can guess a word by saying \"I guess peach\". " <>
                "You can also say, \"I give up\" and I will tell you my word."
           )
         # keepGoing
