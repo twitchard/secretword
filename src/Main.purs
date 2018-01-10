@@ -450,7 +450,7 @@ myHandler event _ =
                "When you guess the secret word, you win! " <>
                "Try to do it in as few guesses as possible. " <>
                "For example, you can guess a word by saying \"I guess peach\". " <>
-               "You can also say, \"I give up\" and I will tell you my word."
+               "You can also say, \"I give up\"."
           )
         # keepGoing
         # defaultReprompt
