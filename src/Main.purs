@@ -29,17 +29,17 @@ import Web.AWS.Lambda (makeHandler)
 import Web.Amazon.Alexa (AlexaRequest(IntentRequest, SessionEndedRequest, LaunchRequest), AlexaResponse)
 import Web.Amazon.Alexa.Lens (_body, _outputSpeech, _reprompt, _response, _sessionAttributes, _shouldEndSession)
 
-{- A Session is a piece of state defined and managed by an Alexa skill. It is persisted
-   by Alexa throughout the course of a user's continuous interaction with the skill.
-   We keep track of the state of our game inside the session. Furthermore, in cases where
-   the user stops interacting with the skill, we persist the session record in DynamoDB
-   to give the user the option of continuing the game later.
-   
-   The state for our game is pretty simple. There is the secret word that is chosen
-   when the user first begins to interact with the skill. Furthermore, there is a
-   list of the words the user has guessed. Right now this is used only to tell the
-   user once they win how many guesses it took them. The final piece of state, 'status'
-   is used to keep track of when we asked the user a yes or no question.
+{- A Session is a piece of state defined and managed by an Alexa skill. It is persisted by Alexa
+   throughout the course of a user's continuous interaction with the skill.  We keep track of the
+   state of our game inside the session. Furthermore, in cases where the user stops interacting
+   with the skill, we persist the session record in DynamoDB to give the user the option of
+   continuing the game later.
+
+   The state for our game is pretty simple. There is the secret word that is chosen when the user
+   first begins to interact with the skill. Furthermore, there is a list of the words the user has
+   guessed. Right now this is used only to tell the user once they win how many guesses it took them.
+   The final piece of state, 'status' is used to keep track of when we asked the user a yes or no
+   question.
 -}
 type Session = Maybe
   { secretWord :: String
@@ -47,8 +47,8 @@ type Session = Maybe
   , status :: Status
   }
 
-{- _guesses is a "Lens". Lenses are a cool trick that let you
-   access and modify specific parts of a datatype less verbosely.
+{- _guesses is a "Lens". Lenses are a cool trick that let you access and modify specific parts of
+   a datatype less verbosely.
 -}
 _guesses :: ∀ r. Lens' {guesses :: Array String | r } (Array String)
 _guesses = prop (SProxy :: SProxy "guesses")
@@ -59,17 +59,15 @@ _status :: ∀ r. Lens' {status :: Status | r } Status
 _status = prop (SProxy :: SProxy "status")
 
 
-{- When status is Normal it means the last thing we asked/told the user
-   was not a yes or no question. When status is GivingUp that means the
-   last thing we asked the user was "do you want to give up?". When
-   status is Loading" it means the last thing we asked the user was
-   "do you want to pick up and continue the game from where we left off
-   last time?"
+{- When status is Normal it means the last thing we asked/told the user was not a yes or no
+   question. When status is GivingUp that means the last thing we asked the user was "do you want
+   to give up?". When status is Loading it means the last thing we asked the user was "do you want
+   to pick up and continue the game from where we left off last time?"
 -}
 data Status = Normal | GivingUp | Loading
 
-{- WriteForeign and ReadForeign instances for the Status type determine how
-   the "status" datatype should be translated to and from javascript.
+{- WriteForeign and ReadForeign instances for the Status type determine how the "status" datatype
+   should be translated to and from javascript.
 -}
 instance wfStatus :: WriteForeign Status where
   writeImpl Normal = write "normal"
@@ -84,19 +82,19 @@ instance rfStatus :: ReadForeign Status where
       | otherwise = Normal
 
 
-{- This function defines the core of the game's logic. Given two words, how many letters
-   do they have in common? (Where duplicate letters contribute to the total to the extent
-   that both words contain the duplication).
+{- This function defines the core of the game's logic. Given two words, how many letters do they
+   have in common? (Where duplicate letters contribute to the total to the extent that both words
+   contain the duplication).
 -}
 lettersInCommon :: String → String → Int
-lettersInCommon w1 w2 = 
+lettersInCommon w1 w2 =
   -- Build two histograms, h1 and h2, that represent the counts of letters in w1 and w2, respectively.
-  -- then, for each letter in w1, look the letter up in both histograms take the smaller of the two counts.
-  -- Sum the resulting list, and that is the reported total.
+  -- then, for each letter in w1, look the letter up in both histograms take the smaller of the two
+  -- counts. Sum the resulting list, and that is the reported total.
   keys h1
     # map (\c →
-        min 
-          (fromMaybe 0 (lookup c h1)) 
+        min
+          (fromMaybe 0 (lookup c h1))
           (fromMaybe 0 (lookup c h2))
       )
     # sum
@@ -113,7 +111,7 @@ lettersInCommon w1 w2 =
     h2 = histogram w2
 
 {-
-  An empty AlexaResponse. 
+  An empty AlexaResponse
 -}
 --  TODO: It's an error for a response to lack both outputSpeech and a card. That would be great to enforce via types.
 emptyResponse :: AlexaResponse Session
@@ -136,7 +134,7 @@ saveSession cli userId sess = do
   case sess of
     Nothing → pure unit
     Just rec → do
-      log $ "Saving session: " <> (writeJSON 
+      log $ "Saving session: " <> (writeJSON
                                     { userId : userId
                                     , guesses: rec.guesses
                                     , secretWord : rec.secretWord
@@ -212,7 +210,7 @@ keepGoing ar = set (_response <<< _shouldEndSession) false ar
 
 {- Sets the 'shouldEndSession' boolean on the AlexaResponse to false. This will cause
    Alexa not to listen for another utterance after the response is delivered. If the
-   user wishes to continue interacting with the skill, he or she will have to say 
+   user wishes to continue interacting with the skill, he or she will have to say
    the wake word (Alexa) and invoke the skill by name
 -}
 stopGoing :: ∀ a. AlexaResponse a → AlexaResponse a
@@ -264,7 +262,7 @@ addGuessToSession s = over (_sessionAttributes <<< _Just <<< _guesses) ((flip sn
    of the file, which is produced by uncurrying this function. But why speak strictly?)
 -}
 myHandler :: ∀ e. Foreign → Foreign → Aff (dynamo :: DYNAMO, console :: CONSOLE, random :: RANDOM | e) Foreign
-myHandler event _ = 
+myHandler event _ =
   -- First, deserialize the 'event' object passed into the AWS handler into an AlexaRequest
   map write $ case (runExcept (read event)) of
     Left errs → do
@@ -278,12 +276,12 @@ myHandler event _ =
       -- field (.session.attributes that will) be of type Foreign, and it should be deserializable
       -- into our Session type.
       case (runExcept (read (view _body e).session.attributes)) of
-        Left errs → 
+        Left errs →
           emptyResponse
             # say ("Error parsing session: " <> (renderErrs errs))
             # stopGoing
             # pure
-        Right sess → do 
+        Right sess → do
           log $ writeJSON event
           -- Pass the deserialized AlexaRequest and Session into the handleEvent function, which
           -- defines the logic of what to actually do when executing our skill.
@@ -300,7 +298,7 @@ myHandler event _ =
     {- The dynamoClient is used to make requests to DynamoDB. If your AWS Lambda function has
        permissions configured correctly, you should not need to provide any configuration beyond
        "region". The AWS sdk will magically just work.
-       
+
        Similarly, if you have an appropriate file in $HOME/.aws/config on your local development
        machine, you will be able to run the process locally and magically be able to access DynamoDB.
     -}
@@ -322,6 +320,11 @@ myHandler event _ =
     {- This function handles randomly selecting the five letter word, initializing an empty session
        and producing an introductory AlexaResponse.
     -}
+    -- TODO: I'm not at peace about how this is a function from Unit to Aff e (AlexaResponse Session)
+    --       It would make more sense to be simply an Aff value. I used to have it that way but I
+    --       changed it after I noticed that "The word is ..." was being logged on *every* invocation,
+    --       and this seemed to fix the problem. Does this have something to do with strict evaluation
+    --       vs lazy?
     startGame :: Unit → Aff (dynamo :: DYNAMO, console :: CONSOLE, random :: RANDOM | e) (AlexaResponse Session)
     startGame _ = do
       word <- liftEff $ randomFiveLetterWord
@@ -354,37 +357,47 @@ myHandler event _ =
                 # reprompt "Looks like you didn't finish your previous game. Would you like to pick up where we left off last time?"
                 # pure
 
+    {- SessionEndedRequest is sent when the session ends for some reason -- typically the user let
+       Alexa time out and chose not to utter a response in time. Basically Alexa is giving one last
+       chance to persist the session in DynamoDB -- so that is what we do!
+
+       SessionEndedRequests are unique because Alexa will not actually deliver the AlexaResponse
+       you respond with. It doesn't really make sense to produce an AlexaResponse, actually.
+       We provide an empty one here to satisfy the type constaints, but probably it is possible to
+       refactor this/change the Alexa library so that handling a SessionEndedRequest expects
+       Aff e Unit, not Aff e AlexaResponse like the others.
+    -}
     handleEvent (SessionEndedRequest r) sess = do
       log "SessionEnded"
       saveSession dynamoClient r.session.user.userId sess
       emptyResponse
         # pure
 
+
+    {- IntentRequest is the typical request sent by Alexa to the skill. The skill defines a schema
+       of "intents" that basically are *categories* for all the utterances that the user might make
+       when interacting with the skill. Whenever the user says something to our skill, Alexa does
+       her best job in determining which "intent" that something corresponds to, and it's up to our
+       skill to take that intent and respond accordingly.
+
+       Intents can contain "slots" that act as "capture groups" for words spoken by the user, so to
+       speak. For our game we have defined a 'GuessIntent' that contains a slot entitled 'Word'. So
+       when the user says "My guess is 'roast'" we can look in the Word slot and see 'roast'.
+
+       In this repository the schema is defined in a file called models/en-US.json
+    -}
     handleEvent (IntentRequest r) sess = do
       log "IntentRequested"
       handleEventHelper
-      where 
+      where
         handleEventHelper
-          | r.request.intent.name == "AMAZON.YesIntent" = handleYesIntent r sess
-          | r.request.intent.name == "AMAZON.NoIntent" = handleNoIntent r sess
-          | r.request.intent.name == "AMAZON.HelpIntent" =
-              emptyResponse
-                # setSession sess
-                # backToNormal
-                # say ("Play the game by guessing five-letter words." <>
-                       "Every time you guess a word, I will tell you how many letters of your guess are also contained in my secret word." <>
-                       "When you guess the secret word, you win!" <>
-                       "Try to do it in as few guesses as possible." <>
-                       "For example, you can guess a word by saying \"I guess peach\"" <>
-                       "You can also say, \"I give up\" and I will tell you my word."
-                  )
-                # keepGoing
-                # defaultReprompt
-                # pure
+          | r.request.intent.name == "AMAZON.YesIntent"  = handleYesIntent r sess
+          | r.request.intent.name == "AMAZON.NoIntent"   = handleNoIntent r sess
+          | r.request.intent.name == "AMAZON.HelpIntent" = handleHelpIntent r sess
           | r.request.intent.name == "AMAZON.StopIntent" = handleGiveUpIntent r sess
-          | r.request.intent.name == "GuessIntent" = handleGuessIntent r sess
-          | r.request.intent.name == "GiveUpIntent" = handleGiveUpIntent r sess
-          | r.request.intent.name == "ThinkingIntent" = handleThinkingIntent r sess
+          | r.request.intent.name == "GuessIntent"       = handleGuessIntent r sess
+          | r.request.intent.name == "GiveUpIntent"      = handleGiveUpIntent r sess
+          | r.request.intent.name == "ThinkingIntent"    = handleThinkingIntent r sess
           | otherwise =
               emptyResponse
                 # say "Unknown intent"
@@ -411,7 +424,7 @@ myHandler event _ =
              handleGuessIntent r sess
         Nothing → startGame unit
 
-    handleNoIntent r sess = 
+    handleNoIntent r sess =
       case sess of
         Just s → case s.status of
           GivingUp →
@@ -428,6 +441,21 @@ myHandler event _ =
           Normal → handleGuessIntent r sess
         Nothing → handleGuessIntent r sess
 
+    handleHelpIntent r sess =
+      emptyResponse
+        # setSession sess
+        # backToNormal
+        # say ("Play the game by guessing five-letter words." <>
+               "Every time you guess a word, I will tell you how many letters of your guess are also contained in my secret word." <>
+               "When you guess the secret word, you win!" <>
+               "Try to do it in as few guesses as possible." <>
+               "For example, you can guess a word by saying \"I guess peach\"" <>
+               "You can also say, \"I give up\" and I will tell you my word."
+          )
+        # keepGoing
+        # defaultReprompt
+        # pure
+
     handleThinkingIntent _ sess =
       emptyResponse
         # setSession sess
@@ -436,7 +464,7 @@ myHandler event _ =
         # keepGoing
         # defaultReprompt
         # pure
-    
+
     handleGiveUpIntent _ sess =
       emptyResponse
         # setSession sess
@@ -452,7 +480,7 @@ myHandler event _ =
             # say "You are not playing a game right now"
             # stopGoing
             # pure
-        Just s → 
+        Just s →
           case runExcept (read r.request.intent.slots) of
             Left _ →
               emptyResponse
@@ -467,6 +495,8 @@ myHandler event _ =
                     # \(x :: {"Word" :: { value :: String }}) → x."Word".value
                     # Str.toLower
 
+              -- "simpleResponse" handles the common case when we say something, reprompt as
+              -- normal, don't modify the session, and keep the session going.
               let simpleResponse text =
                     emptyResponse
                       # setSession sess
@@ -522,6 +552,7 @@ myHandler event _ =
                           # pure
               handleGuess
 
-                  
+{- exports.handler is expected to exist by AWS lambda. It is the uncurried version of 'myHandler'
+-}
 handler :: forall eff. EffFn3 ( dynamo :: DYNAMO, console :: CONSOLE , random :: RANDOM | eff) Foreign Foreign (EffFn2 ( dynamo :: DYNAMO, console :: CONSOLE , random :: RANDOM | eff) (Nullable Error) Foreign Unit) (Fiber ( dynamo :: DYNAMO, console :: CONSOLE , random :: RANDOM | eff) Unit)
 handler = makeHandler myHandler
