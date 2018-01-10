@@ -34,7 +34,8 @@ Amazons [Alexa Skills Kit CLI (ask-cli)](https://www.npmjs.com/package/ask-cli) 
 ```
 npm install -g ask-cli
 ```
-)
+
+A couple caveats:
 
 1. The default directory structure produced by ask-cli (`ask clone`), at least by default, expects the compiled javascript to live underneath the `lambda/custom` subdirectory of the repo. Unfortunately purs ide / my editor plugin have expressed a strong preference that my build reside in `output` right next to `src`. Thus, in my `package.json` I've defined an npm task
 `npm run deploy` that first builds my skill into `lambda/custom/output` and then runs `ask deploy -t lambda`.
@@ -42,3 +43,6 @@ npm install -g ask-cli
 2. By default, the AWS lambda function will try to hook into `exports.handler` inside `index.js`. I went in to the AWS Console and manually changed the handler of my lambda function to `output/Main/index.handler`. Make sure your directory names don't contain any periods (lots of purescript directories do) because AWS lambda won't like that. (Thanks to [Louis Pilford, author of purescript-aws-lambda-express](https://pursuit.purescript.org/packages/purescript-aws-lambda-express/1.0.2) for this warning).
 
 3. I also ended up manually setting permissions for my Lambda function to access DynamoDB.
+
+
+Best of luck! Feedback and contributions are welcome. I would encourage you to make your own Purescript Alexa skill. Voice and Purescript are both really fun! Feel free to use anything from this repo.
