@@ -391,14 +391,15 @@ myHandler event _ =
       handleEventHelper
       where
         handleEventHelper
-          | r.request.intent.name == "AMAZON.YesIntent"  = handleYesIntent r sess
-          | r.request.intent.name == "AMAZON.NoIntent"   = handleNoIntent r sess
-          | r.request.intent.name == "AMAZON.HelpIntent" = handleHelpIntent r sess
-          | r.request.intent.name == "AMAZON.StopIntent" = handleGiveUpIntent r sess
-          | r.request.intent.name == "GuessIntent"       = handleGuessIntent r sess
-          | r.request.intent.name == "GiveUpIntent"      = handleGiveUpIntent r sess
-          | r.request.intent.name == "ThinkingIntent"    = handleThinkingIntent r sess
-          | otherwise =
+          | r.request.intent.name == "AMAZON.YesIntent"    = handleYesIntent r sess
+          | r.request.intent.name == "AMAZON.NoIntent"     = handleNoIntent r sess
+          | r.request.intent.name == "AMAZON.HelpIntent"   = handleHelpIntent r sess
+          | r.request.intent.name == "AMAZON.StopIntent"   = handleStopIntent r sess
+          | r.request.intent.name == "AMAZON.CancelIntent" = handleStopIntent r sess
+          | r.request.intent.name == "GuessIntent"         = handleGuessIntent r sess
+          | r.request.intent.name == "GiveUpIntent"        = handleGiveUpIntent r sess
+          | r.request.intent.name == "ThinkingIntent"      = handleThinkingIntent r sess
+          | otherwise             =
               emptyResponse
                 # say "Unknown intent"
                 # stopGoing
@@ -454,6 +455,14 @@ myHandler event _ =
           )
         # keepGoing
         # defaultReprompt
+        # pure
+
+    handleStopIntent r sess = do
+      saveSession dynamoClient r.session.user.userId sess
+      emptyResponse
+        # backToNormal
+        # say "Bye! Come back later and we can pick up where we left off."
+        # stopGoing
         # pure
 
     handleThinkingIntent _ sess =

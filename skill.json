@@ -5,8 +5,8 @@
         "en-US": {
           "summary": "Guess the secret word",
           "examplePhrases": [
-            "I guess \"trick\"",
-            "I guess \"track\"",
+            "Alexa, open Secret Word.",
+            "I guess \"track\".",
             "I give up"
           ],
           "name": "secret word",

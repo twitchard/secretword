@@ -37,6 +37,7 @@
           ],
           "samples": [
             "Guess {Word}",
+            "I guess {Word}",
             "My guess is {Word}"
           ]
         },
