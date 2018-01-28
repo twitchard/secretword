@@ -1,5 +1,5 @@
 {
-  "name": "codeword",
+  "name": "secretword",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -7,9 +7,18 @@
     "test": "test"
   },
   "scripts": {
+    "build": "pulp build -o lambda/custom/output",
     "deploy": "pulp build -o lambda/custom/output && ask deploy --target lambda",
-    "deploy-model": "ask deploy --target model",
-    "deploy-skill": "ask deploy --target skill",
+
+    "build-model": "pulp build -o lambda/custom/output && node -e 'require(\"./lambda/custom/output/Main\").main()' model | jq -S '.' > models/en-US.json ",
+    "deploy-model": "pulp build -o lambda/custom/output && node -e 'require(\"./lambda/custom/output/Main\").main()' model | jq -S '.' > models/en-US.json && ask deploy --target model",
+
+
+    "build-skill": "pulp build -o lambda/custom/output && node -e 'require(\"./lambda/custom/output/Main\").main()' manifest | jq -S '.' > skill.json",
+    "deploy-skill": "pulp build -o lambda/custom/output && node -e 'require(\"./lambda/custom/output/Main\").main()' manifest | jq -S '.' > skill.json && ask deploy --target skill",
+
+    "build-all": "pulp build -o lambda/custom/output && node -e 'require(\"./lambda/custom/output/Main\").main()' manifest | jq -S '.' > skill.json &&  node -e 'require(\"./lambda/custom/output/Main\").main()' model | jq -S '.' > models/en-US.json",
+    "deploy-all": "pulp build -o lambda/custom/output && node -e 'require(\"./lambda/custom/output/Main\").main()' manifest | jq -S '.' > skill.json &&  node -e 'require(\"./lambda/custom/output/Main\").main()' model | jq -S '.' > models/en-US.json && ask deploy",
     "test": "pulp test"
   },
   "author": "",

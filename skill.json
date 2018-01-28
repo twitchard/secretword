@@ -1,23 +1,5 @@
 {
   "skillManifest": {
-    "publishingInformation": {
-      "locales": {
-        "en-US": {
-          "summary": "Guess the secret word",
-          "examplePhrases": [
-            "Alexa, open Secret Word.",
-            "I guess \"track\".",
-            "I give up"
-          ],
-          "name": "secret word",
-          "description": "Figure out my secret five-letter word in as few guesses as possible. Each time you guess, I will say how many letters your guess shares with the secret word."
-        }
-      },
-      "isAvailableWorldwide": true,
-      "testingInstructions": "Follow the instructions and play the game. To be thorough, try saying \"I give up\", try letting it time out, try saying \"I'm thinking\", ask for help and hear the instructions. If you want to be super thorough, try saying \"yes\" or \"no\" when it doesn't really make sense to say it.",
-      "category": "GAMES",
-      "distributionCountries": []
-    },
     "apis": {
       "custom": {
         "endpoint": {
@@ -25,6 +7,40 @@
         }
       }
     },
-    "manifestVersion": "1.0"
+    "manifestVersion": "1.0",
+    "permissions": [],
+    "privacyAndCompliance": {
+      "allowsPurchases": false,
+      "containsAds": false,
+      "isChildDirected": false,
+      "isExportCompliant": true,
+      "locales": {},
+      "usesPersonalInfo": false
+    },
+    "publishingInformation": {
+      "category": "GAMES",
+      "distributionCountries": [],
+      "isAvailableWorldWide": true,
+      "locales": {
+        "en-US": {
+          "description": "Figure out my secret five-letter word in as few guesses as possible. Each time you guess, I will say how many letters your guess shares with the secret word.",
+          "examplePhrases": [
+            "Alexa, open Secret word",
+            "I guess \"track\".",
+            "I give up"
+          ],
+          "keywords": [
+            "game",
+            "words",
+            "puzzle"
+          ],
+          "name": "secret word",
+          "summary": "Guess the secret word"
+        }
+      },
+      "testingInstructions": ""
+    },
+    "regions": {},
+    "subscriptions": []
   }
 }

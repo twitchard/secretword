@@ -1,5 +1,6 @@
 module SecretWord.Words
   ( randomFiveLetterWord
+  , commonFiveLetterWords
   , isRealWord
   ) where
 
@@ -14,16 +15,16 @@ import Partial.Unsafe (unsafePartial)
 
 randomFiveLetterWord :: ∀ e. Eff (random :: RANDOM | e) String
 randomFiveLetterWord = unsafePartial do
-  let n = length fiveLetterWords
+  let n = length commonFiveLetterWords
   rdmIdx <- randomInt 0 (n - 1)
-  pure $ fromJust $ (fiveLetterWords !! rdmIdx)
+  pure $ fromJust $ (commonFiveLetterWords !! rdmIdx)
 
 isRealWord :: String → Boolean
 isRealWord w = member w recognizedFiveLetterWords
 
 -- Most common five letter words. Only pick secret words from this list
-fiveLetterWords :: Array String
-fiveLetterWords =
+commonFiveLetterWords :: Array String
+commonFiveLetterWords =
   [ "about"
   , "other"
   , "which"
