@@ -31,33 +31,20 @@ foreign import args ::
   , command :: String
   }
 
+type Effects a =
+  ( dynamo :: DYNAMO
+  , console :: CONSOLE
+  , random :: RANDOM
+  | a
+  )
+
 handler :: forall t10.
    EffFn3
-     ( dynamo :: DYNAMO
-     , console :: CONSOLE
-     , random :: RANDOM
-     | t10
-     )
+     ( Effects t10 )
      Foreign
      Foreign
-     (EffFn2
-        ( dynamo :: DYNAMO
-        , console :: CONSOLE
-        , random :: RANDOM
-        | t10
-        )
-        (Nullable Error)
-        Foreign
-        Unit
-     )
-     (Fiber
-        ( dynamo :: DYNAMO
-        , console :: CONSOLE
-        , random :: RANDOM
-        | t10
-        )
-        Unit
-     )
+     (EffFn2 ( Effects t10 ) (Nullable Error) Foreign Unit)
+     (Fiber ( Effects t10 ) Unit)
 handler = makeHandler myHandler
 
 main :: forall t31.

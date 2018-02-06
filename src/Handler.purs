@@ -2,7 +2,7 @@ module Handler where
 
 import Prelude
 
-import AWS.DynamoDB (DYNAMO, DynamoClient, deleteRecord, getClient, loadRecord, saveRecord)
+import AWS.DynamoDB (DYNAMO, DynamoClient, getClient)
 import Control.Monad.Aff (Aff, Fiber)
 import Control.Monad.Aff.Console (CONSOLE, log)
 import Control.Monad.Eff.Class (liftEff)
@@ -14,51 +14,20 @@ import Data.Array (foldl, length, snoc)
 import Data.Either (Either(Right, Left))
 import Data.Foldable (sum)
 import Data.Foreign (Foreign, ForeignError, renderForeignError)
-import Data.Lens (Lens', _Just, over, set, view)
-import Data.Lens.Record (prop)
+import Data.Lens (_Just, over, set, view)
 import Data.List.NonEmpty (NonEmptyList)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Nullable (Nullable)
 import Data.StrMap (StrMap, alter, empty, keys, lookup)
 import Data.String as Str
 import Data.String.Utils (toCharArray)
-import Data.Symbol (SProxy(SProxy))
 import SecretWord.Words (randomFiveLetterWord, isRealWord)
-import Simple.JSON (class ReadForeign, class WriteForeign, read, write, writeJSON)
+import Session (Session, Status(..), _guesses, _status, eraseSession, loadSession, saveSession)
+import Simple.JSON (read, write, writeJSON)
 import Web.AWS.Lambda (makeHandler)
 import Web.Amazon.Alexa.Helpers (emptyResponse, keepGoing, reprompt, say, setSession, stopGoing)
 import Web.Amazon.Alexa.Lens (_body, _sessionAttributes)
 import Web.Amazon.Alexa.Types (AlexaRequest(IntentRequest, SessionEndedRequest, LaunchRequest), AlexaResponse)
-
-type Session = Maybe
-  { secretWord :: String
-  , guesses :: Array String
-  , status :: Status
-  }
-
-_guesses :: ∀ r. Lens' {guesses :: Array String | r } (Array String)
-_guesses = prop (SProxy :: SProxy "guesses")
-
-{- status is also a lens
--}
-_status :: ∀ r. Lens' {status :: Status | r } Status
-_status = prop (SProxy :: SProxy "status")
-
-
-data Status = Normal | GivingUp | Loading
-
-instance wfStatus :: WriteForeign Status where
-  writeImpl Normal = write "normal"
-  writeImpl GivingUp = write "GivingUp"
-  writeImpl Loading = write "Loading"
-
-instance rfStatus :: ReadForeign Status where
-  readImpl f = read f <#> readStatus where
-    readStatus s
-      | s == "GivingUp" = GivingUp
-      | s == "Loading" = Loading
-      | otherwise = Normal
-
 
 lettersInCommon :: String → String → Int
 lettersInCommon w1 w2 =
@@ -80,49 +49,7 @@ lettersInCommon w1 w2 =
     h1 = histogram w1
     h2 = histogram w2
 
-saveSession :: ∀ e. DynamoClient → String → Session → Aff (console :: CONSOLE, dynamo :: DYNAMO | e) Unit
-saveSession cli userId sess = do
-  case sess of
-    Nothing → pure unit
-    Just rec → do
-      log $ "Saving session: " <> (writeJSON
-                                    { userId : userId
-                                    , guesses: rec.guesses
-                                    , secretWord : rec.secretWord
-                                    , status : Normal
-                                    }
-                                  )
-      saveRecord
-        cli
-        "secretword__Sessions"
-        ( write
-          { userId : userId
-          , guesses: rec.guesses
-          , secretWord : rec.secretWord
-          , status : "normal"
-          }
-        )
-loadSession :: ∀ e. DynamoClient → String → Aff (console :: CONSOLE, dynamo :: DYNAMO | e) (Maybe Session)
-loadSession cli id = do
-  rec <- loadRecord
-    cli
-    "secretword__Sessions"
-    ( write
-      { userId : id }
-    )
-  log ("the session was " <> (writeJSON rec))
-  case runExcept (read rec) of
-    Left _ → pure Nothing
-    Right (result :: {"Item" :: Session})→ pure $ Just (result."Item")
 
-eraseSession :: ∀ e. DynamoClient → String → Aff (console :: CONSOLE, dynamo :: DYNAMO | e) Unit
-eraseSession cli id = do
-  deleteRecord
-    cli
-    "secretword__Sessions"
-    ( write
-      { userId : id }
-    )
 
 startGivingUp :: AlexaResponse Session → AlexaResponse Session
 startGivingUp = set (_sessionAttributes <<< _Just <<< _status) GivingUp
