@@ -2,7 +2,6 @@ module Skill where
 
 import Prelude
 
-import AWS.DynamoDB (DYNAMO, getClient)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Aff.Console (CONSOLE)
 import Control.Monad.Eff.Class (liftEff)
@@ -14,12 +13,13 @@ import Data.Either (Either(..))
 import Data.Foldable (foldl, sum)
 import Data.Foreign (Foreign)
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Newtype (unwrap)
 import Data.StrMap (StrMap, alter, empty, keys, lookup)
 import Data.String (length) as String
 import Data.String.Utils (toCharArray)
 import SecretWord.Words (isRealWord, randomFiveLetterWord)
-import Simple.JSON (read, write)
-import Types (Error(..), Input(..), Output(..), Response, Session, Speech(..), Status(..), SessionRec)
+import Simple.JSON (read)
+import Types (SkillError(..), Input(..), Output(..), Response, Session, Speech(..), Status(..), SessionRec)
 import Web.Amazon.Alexa.Types (AlexaRequest(..), AlexaResponse, BuiltInIntent(..), readBuiltInIntent)
 
 readIntent :: String → Foreign → Input
@@ -42,14 +42,13 @@ readIntent intent slots =
         Right (r :: {"Word" :: { value :: String} }) → Guess r."Word".value
         Left _ → ErrorInput SlotParseError
 
-
 renderResponse :: Response → AlexaResponse Session
 renderResponse response =
   { version : "1.0"
   , sessionAttributes : session
   , response :
     { outputSpeech : speech
-    , card : card
+    , card : map unwrap card
     , reprompt : reprompt
     , shouldEndSession : shouldEnd
     }
@@ -76,19 +75,15 @@ renderResponse response =
     
     renderReprompt x = { outputSpeech : x }
 
-handle :: forall e. Foreign → Foreign → Aff ( console :: CONSOLE, dynamo :: DYNAMO, random :: RANDOM | e) Foreign
-handle event context = do
-  let db = getClient
-             { region : "us-east-1"
-             , endpoint : Nothing
-             , apiVersion : Nothing
-             }
-
-  map write $ map renderResponse $ case (runExcept (read event)) of
+handle :: forall db e. (DB db (SkillEffects e)) => db → Foreign → Foreign → Aff (SkillEffects e) (AlexaResponse Session)
+handle db event context = do
+  map renderResponse $ case (runExcept (read event)) of
     Left _ → runSkill db "" (ErrorInput RequestParseError) Nothing
+
     Right (LaunchRequest r) → do
       let userId = r.session.user.userId
       runSkill db userId Launch Nothing
+
     Right (SessionEndedRequest r) → do
       let userId = r.session.user.userId
       let attrs = r.session.attributes
@@ -96,6 +91,7 @@ handle event context = do
                    Left _ → Nothing
                    Right s → s
       runSkill db userId SessionEnded sess
+
     Right (IntentRequest r) → do
       let userId = r.session.user.userId
       let intent = r.request.intent.name
@@ -108,6 +104,25 @@ handle event context = do
 
 
 runSkill :: ∀ db e. DB db (SkillEffects e) => db → String → Input → Session → Aff (SkillEffects e) Response
+
+runSkill _ _ (ErrorInput err) Nothing =
+  pure
+    { session : Nothing
+    , output : JustSpeech
+        { speech : speeches.couldntUnderstand
+        , reprompt : Nothing
+        }
+    }
+
+runSkill _ _ (ErrorInput err) sess =
+  pure
+    { session : sess
+    , output : JustSpeech
+        { speech : speeches.weirdGuess
+        , reprompt : Just speeches.stillThinking
+        }
+    }
+
 runSkill db userId _ Nothing = begin db userId
 
 runSkill db userId Launch _ = begin db userId
@@ -154,7 +169,7 @@ runSkill _ _ _ (Just sess@{status : GivingUp}) =
   pure
     { session : Just (sess { status = Normal } )
     , output : JustSpeech
-        { speech : speeches.unknownIntent
+        { speech : speeches.couldntUnderstand
         , reprompt : Just speeches.stillThinking
         }
     }
@@ -230,17 +245,7 @@ runSkill db userId Stop (Just sess) = goodbye db userId sess
 runSkill db userId Cancel (Just sess) = goodbye db userId sess
 runSkill db userId SessionEnded (Just sess) = goodbye db userId sess
 
-runSkill _ _ (ErrorInput err) sess =
-    
-  pure
-    { session : sess
-    , output : JustSpeech
-        { speech : speeches.weirdGuess
-        , reprompt : Just speeches.stillThinking
-        }
-    }
-
-type SkillEffects e = (random :: RANDOM, console :: CONSOLE, dynamo :: DYNAMO | e)
+type SkillEffects e = (random :: RANDOM, console :: CONSOLE | e)
 
 begin :: ∀ db e. DB db (SkillEffects e) => db → String → Aff (SkillEffects e) Response
 begin db userId = do
@@ -320,7 +325,6 @@ speeches ::
   , didntUnderstandRestore :: Speech
   , restoredGame :: Speech
   , giveUp :: Speech
-  , notPlayingYet :: Speech
   , didntGiveUp :: Speech
   , youLose :: String -> Speech
   , youWin :: Int -> Speech
@@ -328,7 +332,7 @@ speeches ::
   , goodbye :: Speech
   , thinking :: Speech
   , weirdGuess :: Speech
-  , unknownIntent :: Speech
+  , couldntUnderstand :: Speech
   , unknownWord :: String -> Speech
   , wrongGuess :: String → Int → Speech
   , wrongLengthGuess :: String -> Int -> Speech
@@ -340,7 +344,6 @@ speeches =
   , didntUnderstandRestore : Text "Sorry, please say yes or no. Do you want to restore the previous game?"
   , restoredGame : Text "All right! I've remembered your secret word from last time. What would you like to guess?"
   , giveUp : Text "Are you sure you want to give up?"
-  , notPlayingYet : Text "You are not playing a game right now"
   , didntGiveUp : Text "I knew you were too brave to give up! Ok, what's your next guess?"
   , youLose : \word → Text $ "Better luck next time! My secret word was " <> word
   , youWin : \n → Text $ "You got it! Congratulations. it only took you " <> (show n) <> " guesses."
@@ -353,7 +356,7 @@ speeches =
       "You can also say, \"I give up\"."
   , goodbye : Text "Bye! Come back later and we can pick up where we left off."
   , thinking : Text "Ok, take a few seconds"
-  , unknownIntent : Text "Unknown intent"
+  , couldntUnderstand : Text "I'm sorry, I didn't understand. Please try again."
   , weirdGuess : Text "I couldn't hear your guess -- please try again."
   , wrongGuess : \guess n →
       let letterWord = if n == 1 then "letter" else "letters"

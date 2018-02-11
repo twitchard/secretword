@@ -2,7 +2,7 @@ module Main where
 
 import Prelude
 
-import AWS.DynamoDB (DYNAMO)
+import AWS.DynamoDB (DYNAMO, getClient)
 import Control.Monad.Aff (Error, Fiber)
 import Control.Monad.Aff.Console (CONSOLE)
 import Control.Monad.Eff (Eff)
@@ -10,10 +10,11 @@ import Control.Monad.Eff.Console (log)
 import Control.Monad.Eff.Random (RANDOM)
 import Control.Monad.Eff.Uncurried (EffFn2, EffFn3)
 import Data.Foreign (Foreign)
+import Data.Maybe (Maybe(..))
 import Data.Nullable (Nullable)
 import Manifest (manifest)
 import Module (model)
-import Simple.JSON (writeJSON)
+import Simple.JSON (write, writeJSON)
 import Skill (handle)
 import Web.AWS.Lambda (makeHandler)
 
@@ -49,4 +50,12 @@ handler :: forall e.
         ( console :: CONSOLE , dynamo :: DYNAMO , random :: RANDOM | e)
         Unit
      )
-handler = makeHandler handle
+handler =
+  let db = getClient
+             { region : "us-east-1"
+             , endpoint : Nothing
+             , apiVersion : Nothing
+             }
+  in
+  makeHandler $ \event context →
+    map write $ handle db event context
