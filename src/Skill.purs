@@ -36,7 +36,7 @@ readIntent intent slots =
       readCustomIntent
         | intent == "GiveUpIntent" = GiveUp
         | intent == "ThinkingIntent" = Thinking
-        | intent == "Guess" = readGuess
+        | intent == "GuessIntent" = readGuess
         | otherwise = ErrorInput IntentParseError
       readGuess = case runExcept (read slots) of
         Right (r :: {"Word" :: { value :: String} }) → Guess r."Word".value
