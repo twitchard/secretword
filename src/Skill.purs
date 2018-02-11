@@ -234,7 +234,7 @@ runSkill _ _ (ErrorInput _) sess =
   pure
     { session : sess
     , output : JustSpeech
-        { speech : speeches.unknownIntent
+        { speech : speeches.weirdGuess
         , reprompt : Just speeches.stillThinking
         }
     }
