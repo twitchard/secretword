@@ -12,7 +12,8 @@
     "purescript-aws-lambda-handler": "git://github.com/twitchard/purescript-aws-lambda-handler",
     "purescript-alexa": "git://github.com/twitchard/purescript-alexa",
     "purescript-random": "~3.0.0",
-    "purescript-stringutils": "~0.0.7"
+    "purescript-stringutils": "~0.0.7",
+    "purescript-aff": "~4.0.2"
   },
   "devDependencies": {
     "purescript-psci-support": "~3.0.0"
