@@ -1,4 +1,6 @@
-module Test.Main where
+module Test.Main
+  ( main )
+  where
 
 import Prelude
 
@@ -28,81 +30,6 @@ newtype TestDB = TestDB
 
 instance testDB :: DB TestDB (|e) where
   saveSession db _ _ = pure unit
-  loadSession (TestDB db) _ = pure db.sess
-  eraseSession db _ = pure unit
-
-emptyDB :: TestDB
-emptyDB = TestDB {sess : Nothing}
-
-dbWith :: Session → TestDB
-dbWith sess = TestDB { sess : Just sess }
-
-testEvent = {
-  "version": "1.0",
-  "session": {
-    "new": true,
-    "sessionId": "sessionId",
-    "application": { "applicationId": "applicationId" },
-    "user": { "userId": "userId" },
-    "attributes": {
-      "secretWord": "blush",
-      "guesses": ([] :: Array String),
-      "status": "Normal"
-    }
-  },
-  "context": {
-    "AudioPlayer": { "playerActivity": "IDLE" },
-    "Display": { "token": "" },
-    "System": {
-      "application": { "applicationId": "applicationId" },
-      "user": { "userId": "userId" },
-      "device": {
-        "deviceId": "deviceId",
-        "supportedInterfaces": {
-          "AudioPlayer": {},
-          "Display": {
-            "templateVersion": "1.0",
-            "markupVersion": "1.0"
-          }
-        }
-      },
-      "apiEndpoint": "apiEndpoint",
-      "apiAccessToken": "apiAccessToken"
-    }
-  },
-  "request": {
-    "type": "IntentRequest",
-    "intent": {
-      "name" : "GuessIntent",
-      "slots" : {
-        "Word" : { "value" : "blush" }
-      }
-    },
-    "requestId": "amzn1.echo-api.request.8d5730f6-0e10-4682-be13-153823b630b9",
-    "timestamp": "2018-01-07T23:37:53Z",
-    "locale": "en-US"
-  }
-}
-
-testHandle :: ∀ e.
-  Foreign →
-  TestDB →
-  String →
-  String →
-  Session →
-  (Aff ( random :: RANDOM , console :: CONSOLE | e)) Unit
-testHandle event db expectedType expectedText expectedSession = do
-  result <- handle db event dummy
-  let outputType = view (_response <<< _outputSpeech <<< _Just <<< _type) result
-      text = view (_response <<< _outputSpeech <<< _Just <<< _text ) result
-      session = view (_sessionAttributes ) result
-
-  Assert.assert
-    ("Speech should be type \"" <> expectedType <> "\" not \"" <> outputType <> "\".")
-    $ outputType == expectedType
-
-  Assert.assert
-    ("Alexa should say \"" <> expectedText <> "\", not \"" <> text <> "\".")
     $ text == expectedText
 
   Assert.assert
@@ -152,12 +79,15 @@ main = runTest do
           expectedSession = Nothing
       testHandle event db expectedType expectedText expectedSession
 
-    test "Handling a malformed Guess" do
+    test "Handling a unknown intent" do
       let event = write
                     (testEvent
                       { request = testEvent.request
-                                    { type = "MalformedRequest"
-                                    }
+                        { intent = testEvent.request.intent
+                          { name = "Unknown" }
+                        }
+                      , session = testEvent.session
+                        { attributes = (Nothing :: Maybe String) }
                       }
                     )
 
@@ -166,3 +96,51 @@ main = runTest do
           expectedText = textOf $ speeches.couldntUnderstand
           expectedSession = Nothing
       testHandle event db expectedType expectedText expectedSession
+  where
+    testEvent = {
+      "version": "1.0",
+      "session": {
+        "new": true,
+        "sessionId": "sessionId",
+        "application": { "applicationId": "applicationId" },
+        "user": { "userId": "userId" },
+        "attributes": {
+          "secretWord": "blush",
+          "guesses": ([] :: Array String),
+          "status": "Normal"
+        }
+      },
+      "context": {
+        "AudioPlayer": { "playerActivity": "IDLE" },
+        "Display": { "token": "" },
+        "System": {
+          "application": { "applicationId": "applicationId" },
+          "user": { "userId": "userId" },
+          "device": {
+            "deviceId": "deviceId",
+            "supportedInterfaces": {
+              "AudioPlayer": {},
+              "Display": {
+                "templateVersion": "1.0",
+                "markupVersion": "1.0"
+              }
+            }
+          },
+          "apiEndpoint": "apiEndpoint",
+          "apiAccessToken": "apiAccessToken"
+        }
+      },
+      "request": {
+        "type": "IntentRequest",
+        "intent": {
+          "name" : "GuessIntent",
+          "slots" : {
+            "Word" : { "value" : "blush" }
+          }
+        },
+        "requestId": "amzn1.echo-api.request.8d5730f6-0e10-4682-be13-153823b630b9",
+        "timestamp": "2018-01-07T23:37:53Z",
+        "locale": "en-US"
+      }
+    }
+    
