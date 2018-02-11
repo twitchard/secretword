@@ -30,6 +30,34 @@ newtype TestDB = TestDB
 
 instance testDB :: DB TestDB (|e) where
   saveSession db _ _ = pure unit
+  loadSession (TestDB db) _ = pure db.sess
+  eraseSession db _ = pure unit
+
+emptyDB :: TestDB
+emptyDB = TestDB {sess : Nothing}
+
+dbWith :: Session → TestDB
+dbWith sess = TestDB { sess : Just sess }
+
+testHandle :: ∀ e.
+  Foreign →
+  TestDB →
+  String →
+  String →
+  Session →
+  (Aff ( random :: RANDOM , console :: CONSOLE | e)) Unit
+testHandle event db expectedType expectedText expectedSession = do
+  result <- handle db event dummy
+  let outputType = view (_response <<< _outputSpeech <<< _Just <<< _type) result
+      text = view (_response <<< _outputSpeech <<< _Just <<< _text ) result
+      session = view (_sessionAttributes ) result
+
+  Assert.assert
+    ("Speech should be type \"" <> expectedType <> "\" not \"" <> outputType <> "\".")
+    $ outputType == expectedType
+
+  Assert.assert
+    ("Alexa should say \"" <> expectedText <> "\", not \"" <> text <> "\".")
     $ text == expectedText
 
   Assert.assert
