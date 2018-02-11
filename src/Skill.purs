@@ -154,7 +154,7 @@ runSkill _ _ _ (Just sess@{status : GivingUp}) =
   pure
     { session : Just (sess { status = Normal } )
     , output : JustSpeech
-        { speech : speeches.weirdGuess
+        { speech : speeches.unknownIntent
         , reprompt : Just speeches.stillThinking
         }
     }
@@ -325,6 +325,7 @@ speeches ::
   , goodbye :: Speech
   , thinking :: Speech
   , weirdGuess :: Speech
+  , unknownIntent :: Speech
   , unknownWord :: String -> Speech
   , wrongGuess :: String → Int → Speech
   , wrongLengthGuess :: String -> Int -> Speech
@@ -349,6 +350,7 @@ speeches =
       "You can also say, \"I give up\"."
   , goodbye : Text "Bye! Come back later and we can pick up where we left off."
   , thinking : Text "Ok, take a few seconds"
+  , unknownIntent : Text "Unknown intent"
   , weirdGuess : Text "I couldn't hear your guess -- please try again."
   , wrongGuess : \guess n →
       let letterWord = if n == 1 then "letter" else "letters"
