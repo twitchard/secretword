@@ -2,13 +2,13 @@ module Skill where
 
 import Prelude
 
-import AWS.DynamoDB (DYNAMO, DynamoClient, getClient)
+import AWS.DynamoDB (DYNAMO, getClient)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Aff.Console (CONSOLE)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Random (RANDOM)
 import Control.Monad.Except (runExcept)
-import DB (eraseSession, loadSession, saveSession)
+import DB (class DB, eraseSession, loadSession, saveSession)
 import Data.Array (cons, length)
 import Data.Either (Either(..))
 import Data.Foldable (foldl, sum)
@@ -107,7 +107,7 @@ handle event context = do
       runSkill db userId (readIntent intent slots) sess
 
 
-runSkill :: ∀ e. DynamoClient → String → Input → Session → Aff (console :: CONSOLE, dynamo :: DYNAMO, random :: RANDOM | e) Response
+runSkill :: ∀ db e. DB db (SkillEffects e) => db → String → Input → Session → Aff (SkillEffects e) Response
 runSkill db userId _ Nothing = begin db userId
 
 runSkill db userId Launch _ = begin db userId
@@ -230,7 +230,8 @@ runSkill db userId Stop (Just sess) = goodbye db userId sess
 runSkill db userId Cancel (Just sess) = goodbye db userId sess
 runSkill db userId SessionEnded (Just sess) = goodbye db userId sess
 
-runSkill _ _ (ErrorInput _) sess =
+runSkill _ _ (ErrorInput err) sess =
+    
   pure
     { session : sess
     , output : JustSpeech
@@ -239,7 +240,9 @@ runSkill _ _ (ErrorInput _) sess =
         }
     }
 
-begin :: ∀ e. DynamoClient → String → Aff (console :: CONSOLE, dynamo :: DYNAMO, random :: RANDOM | e) Response
+type SkillEffects e = (random :: RANDOM, console :: CONSOLE, dynamo :: DYNAMO | e)
+
+begin :: ∀ db e. DB db (SkillEffects e) => db → String → Aff (SkillEffects e) Response
 begin db userId = do
   loadedSession <- loadSession db userId
   case loadedSession of
@@ -278,7 +281,7 @@ weirdGuess sess =
         }
     }
 
-goodbye :: ∀ e. DynamoClient → String → SessionRec → Aff (console :: CONSOLE, dynamo :: DYNAMO | e) Response
+goodbye :: ∀ db e. DB db (SkillEffects e) => db → String → SessionRec → Aff (SkillEffects e) Response
 goodbye db userId sess = do
   saveSession db userId (Just sess)
   pure

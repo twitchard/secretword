@@ -1,6 +1,6 @@
 exports.log = function (s) {
     return function () {
-        console.log(s)
+        console.log(JSON.stringify(s, null, 2))
     }
 }
 
