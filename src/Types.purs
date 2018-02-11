@@ -84,10 +84,21 @@ instance eqOutput :: Eq Output where
   eq = genericEq
 
 newtype Card = Card
-  { type :: String
+  { type :: CardType
   , title :: String
   , content :: String
   }
+
+data CardType = Simple | Standard | LinkAccount
+derive instance genericCardType :: Generic CardType _
+instance showCardType :: Show CardType where
+  show = genericShow
+instance eqCardType :: Eq CardType where
+  eq = genericEq
+instance wfCardType :: WriteForeign CardType where
+  writeImpl Simple = write "Simple"
+  writeImpl Standard = write "Standard"
+  writeImpl LinkAccount = write "LinkAccount"
 
 derive instance newtypeCard :: Newtype Card _
 derive instance genericCard :: Generic Card _

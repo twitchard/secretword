@@ -13,13 +13,12 @@ import Data.Either (Either(..))
 import Data.Foldable (foldl, sum)
 import Data.Foreign (Foreign)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Newtype (unwrap)
 import Data.StrMap (StrMap, alter, empty, keys, lookup)
 import Data.String (length) as String
 import Data.String.Utils (toCharArray)
 import SecretWord.Words (isRealWord, randomFiveLetterWord)
-import Simple.JSON (read)
-import Types (SkillError(..), Input(..), Output(..), Response, Session, Speech(..), Status(..), SessionRec)
+import Simple.JSON (read, writeJSON)
+import Types (Card(..), CardType(..), Input(..), Output(..), Response, Session, SessionRec, SkillError(..), Speech(..), Status(..))
 import Web.Amazon.Alexa.Types (AlexaRequest(..), AlexaResponse, BuiltInIntent(..), readBuiltInIntent)
 
 readIntent :: String → Foreign → Input
@@ -48,7 +47,7 @@ renderResponse response =
   , sessionAttributes : session
   , response :
     { outputSpeech : speech
-    , card : map unwrap card
+    , card : map (\(Card c) → c { type = writeJSON c.type }) card
     , reprompt : reprompt
     , shouldEndSession : shouldEnd
     }
@@ -216,9 +215,14 @@ runSkill db userId (Guess guess) (Just sess) = do
             let n = lettersInCommon guess sess.secretWord
             pure
               { session : Just (sess {guesses = guess `cons` sess.guesses})
-              , output : JustSpeech
+              , output : SpeechAndCard
                   { speech : speeches.wrongGuess guess n
                   , reprompt : Just speeches.stillThinking
+                  , card : Card
+                             { type : Simple
+                             , title : "Secret Word Guesses"
+                             , content : "Howdy"
+                             }
                   }
               }
   handleGuess
