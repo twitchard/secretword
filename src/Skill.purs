@@ -60,6 +60,7 @@ renderResponse response =
                   SpeechAndCard s → Just $ renderSpeech s.speech
     card = case response.output of
                 JustCard c → Just c
+                SpeechAndCard sc → Just sc.card
                 _ → Nothing
     reprompt = case response.output of
                     JustCard _ → Nothing
