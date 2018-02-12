@@ -66,7 +66,7 @@ americanEnglish =
           , { "name" : "ThirdLetter"
             , "type": "Letter"
             }
-          , { "name" : "FourLetter"
+          , { "name" : "FourthLetter"
             , "type": "Letter"
             }
           , { "name" : "FifthLetter"

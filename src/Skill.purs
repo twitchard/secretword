@@ -2,20 +2,21 @@ module Skill where
 
 import Prelude
 
+import Control.Bind (bindFlipped)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Aff.Console (CONSOLE)
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Random (RANDOM)
 import Control.Monad.Except (runExcept)
 import DB (class DB, eraseSession, loadSession, saveSession)
-import Data.Array (cons, length)
+import Data.Array (catMaybes, cons, length)
 import Data.Either (Either(..))
 import Data.Foldable (foldl, sum, intercalate)
 import Data.Foreign (Foreign)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.StrMap (StrMap, alter, empty, keys, lookup)
 import Data.String (length) as String
-import Data.String (toLower)
+import Data.String (singleton, toLower, uncons)
 import Data.String.Utils (toCharArray)
 import SecretWord.Words (isRealWord, randomFiveLetterWord)
 import Simple.JSON (read)
@@ -43,20 +44,27 @@ readIntent intent slots =
         Right (r :: {"Word" :: { value :: String} }) → Guess (toLower r."Word".value)
         Left _ → ErrorInput SlotParseError
       readSpelling = case runExcept (read slots) of
-        Right (r :: { "FirstLetter"  :: { value :: String } 
-                    , "SecondLetter" :: { value :: String } 
-                    , "ThirdLetter"  :: { value :: String } 
-                    , "FourthLetter" :: { value :: String } 
-                    , "FifthLetter"  :: { value :: String } 
+        Right (r :: { "FirstLetter"  :: Maybe { value :: String } 
+                    , "SecondLetter" :: Maybe { value :: String } 
+                    , "ThirdLetter"  :: Maybe { value :: String } 
+                    , "FourthLetter" :: Maybe { value :: String } 
+                    , "FifthLetter"  :: Maybe { value :: String } 
                     }
-              ) → Guess (toLower 
-                          ( r."FirstLetter".value 
-                          <> r."SecondLetter".value 
-                          <> r."ThirdLetter".value 
-                          <> r."FourthLetter".value 
-                          <> r."FifthLetter".value 
-                          )
-                        )
+              ) → [ r."FirstLetter"
+                  , r."SecondLetter"
+                  , r."ThirdLetter"
+                  , r."FourthLetter"
+                  , r."FifthLetter"
+                  ]
+                  <#> map (\x → x.value)
+                  <#> bindFlipped uncons
+                  <#> map (\x → x.head)
+                  <#> map singleton
+                  # catMaybes
+                  # foldl (<>) ""
+                  # toLower
+                  # Guess
+                        
         Left _ → ErrorInput SlotParseError
 
 renderResponse :: Response → AlexaResponse Session
