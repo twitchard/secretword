@@ -52,6 +52,31 @@ americanEnglish =
           [ "Guess {Word}"
           , "I guess {Word}"
           , "My guess is {Word}"
+          , "How about {Word}"
+          ]
+        }
+      , { name: "SpellingIntent"
+        , slots: 
+          [ { "name" : "FirstLetter"
+            , "type": "Letter"
+            }
+          , { "name" : "SecondLetter"
+            , "type": "Letter"
+            }
+          , { "name" : "ThirdLetter"
+            , "type": "Letter"
+            }
+          , { "name" : "FourLetter"
+            , "type": "Letter"
+            }
+          , { "name" : "FifthLetter"
+            , "type": "Letter"
+            }
+          ]
+        , samples: 
+          [ "I guess {FirstLetter} {SecondLetter} {ThirdLetter} {FourthLetter} {FifthLetter}"
+          , "{FirstLetter} {SecondLetter} {ThirdLetter} {FourthLetter} {FifthLetter}"
+          , "How about {FirstLetter} {SecondLetter} {ThirdLetter} {FourthLetter} {FifthLetter}"
           ]
         }
       , { name: "ThinkingIntent"
@@ -64,15 +89,79 @@ americanEnglish =
       ]
   , types:
       [ fiveLetterWordType
+      , letterType
       ]
   }
   where
   fiveLetterWordType = { name : "FiveLetterWord"
                        , values : map toValue commonFiveLetterWords
                        }
+  letterType = { name : "Letter"
+               , values : map toValue (alphabet <> natoAlphabet)
+               }
+
   toValue word = 
     { name :
         { value : word
         , synonyms : []
         }
     }
+
+  natoAlphabet =
+    [ "Alpha"
+    , "Bravo"
+    , "Charlie"
+    , "Delta"
+    , "Echo"
+    , "Foxtrot"
+    , "Golf"
+    , "Hotel"
+    , "India"
+    , "Juliet"
+    , "Kilo"
+    , "Lima"
+    , "Mike"
+    , "November"
+    , "Oscar"
+    , "Papa"
+    , "Quebec"
+    , "Romeo"
+    , "Sierra"
+    , "Tango"
+    , "Uniform"
+    , "Victor"
+    , "Whiskey"
+    , "X-ray"
+    , "Yankee"
+    , "Zulu"
+    ]
+
+  alphabet =
+    [ "A"
+    , "B"
+    , "C"
+    , "D"
+    , "E"
+    , "F"
+    , "G"
+    , "H"
+    , "I"
+    , "J"
+    , "K"
+    , "L"
+    , "M"
+    , "N"
+    , "O"
+    , "P"
+    , "Q"
+    , "R"
+    , "S"
+    , "T"
+    , "U"
+    , "V"
+    , "W"
+    , "X"
+    , "Y"
+    , "Z"
+    ]
+

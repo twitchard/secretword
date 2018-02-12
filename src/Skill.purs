@@ -15,6 +15,7 @@ import Data.Foreign (Foreign)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.StrMap (StrMap, alter, empty, keys, lookup)
 import Data.String (length) as String
+import Data.String (toLower)
 import Data.String.Utils (toCharArray)
 import SecretWord.Words (isRealWord, randomFiveLetterWord)
 import Simple.JSON (read)
@@ -36,9 +37,26 @@ readIntent intent slots =
         | intent == "GiveUpIntent" = GiveUp
         | intent == "ThinkingIntent" = Thinking
         | intent == "GuessIntent" = readGuess
+        | intent == "SpellingIntent" = readSpelling
         | otherwise = ErrorInput IntentParseError
       readGuess = case runExcept (read slots) of
-        Right (r :: {"Word" :: { value :: String} }) → Guess r."Word".value
+        Right (r :: {"Word" :: { value :: String} }) → Guess (toLower r."Word".value)
+        Left _ → ErrorInput SlotParseError
+      readSpelling = case runExcept (read slots) of
+        Right (r :: { "FirstLetter"  :: { value :: String } 
+                    , "SecondLetter" :: { value :: String } 
+                    , "ThirdLetter"  :: { value :: String } 
+                    , "FourthLetter" :: { value :: String } 
+                    , "FifthLetter"  :: { value :: String } 
+                    }
+              ) → Guess (toLower 
+                          ( r."FirstLetter".value 
+                          <> r."SecondLetter".value 
+                          <> r."ThirdLetter".value 
+                          <> r."FourthLetter".value 
+                          <> r."FifthLetter".value 
+                          )
+                        )
         Left _ → ErrorInput SlotParseError
 
 renderResponse :: Response → AlexaResponse Session
