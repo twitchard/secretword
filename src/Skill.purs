@@ -184,7 +184,7 @@ runSkill _ _ Yes (Just sess@{status : GivingUp}) =
 
 runSkill _ _ No (Just sess@{status : GivingUp}) =
   pure
-    { session : Nothing
+    { session : Just sess
     , output : JustSpeech
         { speech : speeches.didntGiveUp
         , reprompt: Just speeches.stillThinking
