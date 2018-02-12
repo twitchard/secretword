@@ -191,25 +191,28 @@ runSkill db userId (Guess guess) (Just sess) = do
   let handleGuess
         | l /= 5 = pure
             { session : Just sess
-            , output : JustSpeech
+            , output : SpeechAndCard
                 { speech : speeches.wrongLengthGuess guess l
                 , reprompt : Just speeches.stillThinking
+                , card : guessCard sess.secretWord sess.guesses
                 }
             }
         | not $ isRealWord guess = pure
             { session : Just sess
-            , output : JustSpeech
+            , output : SpeechAndCard
                 { speech : speeches.unknownWord guess
                 , reprompt : Just speeches.stillThinking
+                , card : guessCard sess.secretWord sess.guesses
                 }
             }
         | guess == sess.secretWord = do
             eraseSession db userId
             pure
               { session : Nothing
-              , output : JustSpeech
+              , output : SpeechAndCard
                   { speech : speeches.youWin (length sess.guesses + 1)
                   , reprompt : Nothing
+                  , card : guessCard sess.secretWord sess.guesses
                   }
               }
         | otherwise = do
@@ -228,18 +231,20 @@ runSkill db userId (Guess guess) (Just sess) = do
 runSkill _ _ Thinking (Just sess) = 
   pure
     { session : Just sess
-    , output : JustSpeech
+    , output : SpeechAndCard
         { speech : speeches.thinking
         , reprompt : Just speeches.stillThinking
+        , card : guessCard sess.secretWord sess.guesses
         }
     }
 
 runSkill _ _ GiveUp (Just sess) = 
   pure
     { session : Just (sess {status = GivingUp})
-    , output : JustSpeech
+    , output : SpeechAndCard
         { speech : speeches.giveUp
         , reprompt : Just speeches.giveUp
+        , card : guessCard sess.secretWord sess.guesses
         }
     }
 
@@ -282,9 +287,10 @@ weirdGuess :: ∀ e. SessionRec → Aff e Response
 weirdGuess sess =
   pure
     { session : Just (sess { status = Normal } )
-    , output : JustSpeech
+    , output : SpeechAndCard
         { speech : speeches.weirdGuess
         , reprompt : Just speeches.stillThinking
+        , card : guessCard sess.secretWord sess.guesses
         }
     }
 
