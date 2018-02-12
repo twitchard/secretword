@@ -47,7 +47,7 @@ renderResponse response =
   , sessionAttributes : session
   , response :
     { outputSpeech : speech
-    , card : map (\(Card c) → c { type = writeJSON c.type }) card
+    , card : map (\(Card c) → c { type = show c.type }) card
     , reprompt : reprompt
     , shouldEndSession : shouldEnd
     }

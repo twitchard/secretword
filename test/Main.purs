@@ -9,7 +9,6 @@ import Control.Monad.Aff.AVar (AVAR)
 import Control.Monad.Aff.Console (CONSOLE)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Random (RANDOM)
-import DB (class DB)
 import Data.Foreign (Foreign)
 import Data.Lens (_Just, view)
 import Data.Maybe (Maybe(Nothing, Just))
@@ -19,25 +18,12 @@ import Test.Unit (suite, test)
 import Test.Unit.Assert (assert) as Assert
 import Test.Unit.Console (TESTOUTPUT)
 import Test.Unit.Main (runTest)
+import TestDB (TestDB, emptyDB)
 import Types (Session, textOf)
 import Web.Amazon.Alexa.Lens (_outputSpeech, _response, _sessionAttributes, _text, _type)
 
 dummy :: Foreign
 dummy = write {}
-
-newtype TestDB = TestDB
-  { sess :: Maybe Session }
-
-instance testDB :: DB TestDB (|e) where
-  saveSession db _ _ = pure unit
-  loadSession (TestDB db) _ = pure db.sess
-  eraseSession db _ = pure unit
-
-emptyDB :: TestDB
-emptyDB = TestDB {sess : Nothing}
-
-dbWith :: Session → TestDB
-dbWith sess = TestDB { sess : Just sess }
 
 testHandle :: ∀ e.
   Foreign →

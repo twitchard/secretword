@@ -3,10 +3,13 @@ module Main where
 import Prelude
 
 import AWS.DynamoDB (DYNAMO, getClient)
-import Control.Monad.Aff (Error, Fiber)
+import Control.Monad.Aff (Aff, Error, Fiber, launchAff_)
+import Control.Monad.Aff.Compat (EffFnAff, fromEffFnAff)
 import Control.Monad.Aff.Console (CONSOLE)
-import Control.Monad.Eff (Eff)
+import Control.Monad.Eff (Eff, kind Effect)
+import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Console (log)
+import Control.Monad.Eff.Exception (EXCEPTION)
 import Control.Monad.Eff.Random (RANDOM)
 import Control.Monad.Eff.Uncurried (EffFn2, EffFn3)
 import Data.Foreign (Foreign)
@@ -16,6 +19,7 @@ import Manifest (manifest)
 import Module (model)
 import Simple.JSON (write, writeJSON)
 import Skill (handle)
+import TestDB (emptyDB)
 import Web.AWS.Lambda (makeHandler)
 
 foreign import args ::
@@ -23,17 +27,32 @@ foreign import args ::
   , command :: String
   }
 
-main :: forall t31. Eff ( console :: CONSOLE | t31) Unit
+foreign import data STDIN :: Effect
+
+foreign import _readJsonFromStdin :: ∀ eff. EffFnAff (stdin :: STDIN | eff) String
+readJsonFromStdin :: ∀ e. Aff (stdin :: STDIN | e) String
+readJsonFromStdin = fromEffFnAff _readJsonFromStdin
+
+
+main :: forall t31. Eff ( random :: RANDOM, stdin :: STDIN, exception :: EXCEPTION, console :: CONSOLE | t31) Unit
 main = runCommand
   where
     runCommand
       | args.command == "manifest" = generateManifest
       | args.command == "model" = generateModel
+      | args.command == "execute" = handleFromStdin
       | otherwise = printUsage
 
     generateManifest = log $ writeJSON manifest
     generateModel    = log $ writeJSON model
     printUsage       = log $ "TODO"
+    handleFromStdin  = launchAff_ do
+      event <- readJsonFromStdin <#> write
+      let context = write {}
+          db = emptyDB
+      result <- map write $ handle db event context
+      ( liftEff <<< log <<< writeJSON) result
+
 
 handler :: forall e.
    EffFn3
