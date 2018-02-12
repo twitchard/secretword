@@ -10,14 +10,14 @@ import Control.Monad.Except (runExcept)
 import DB (class DB, eraseSession, loadSession, saveSession)
 import Data.Array (cons, length)
 import Data.Either (Either(..))
-import Data.Foldable (foldl, sum)
+import Data.Foldable (foldl, sum, intercalate)
 import Data.Foreign (Foreign)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.StrMap (StrMap, alter, empty, keys, lookup)
 import Data.String (length) as String
 import Data.String.Utils (toCharArray)
 import SecretWord.Words (isRealWord, randomFiveLetterWord)
-import Simple.JSON (read, writeJSON)
+import Simple.JSON (read)
 import Types (Card(..), CardType(..), Input(..), Output(..), Response, Session, SessionRec, SkillError(..), Speech(..), Status(..))
 import Web.Amazon.Alexa.Types (AlexaRequest(..), AlexaResponse, BuiltInIntent(..), readBuiltInIntent)
 
@@ -214,16 +214,13 @@ runSkill db userId (Guess guess) (Just sess) = do
               }
         | otherwise = do
             let n = lettersInCommon guess sess.secretWord
+            let guesses = guess `cons` sess.guesses
             pure
-              { session : Just (sess {guesses = guess `cons` sess.guesses})
+              { session : Just (sess {guesses = guesses})
               , output : SpeechAndCard
                   { speech : speeches.wrongGuess guess n
                   , reprompt : Just speeches.stillThinking
-                  , card : Card
-                             { type : Simple
-                             , title : "Secret Word Guesses"
-                             , content : "Howdy"
-                             }
+                  , card : guessCard sess.secretWord guesses
                   }
               }
   handleGuess
@@ -322,6 +319,15 @@ lettersInCommon w1 w2 =
     h1 = histogram w1
     h2 = histogram w2
 
+guessCard :: String → Array String → Card
+guessCard secretWord guesses = Card
+  { type : Simple
+  , title : show n <> "Guesses"
+  , content : guesses
+      # map (\guess → guess <> " - " <> (show $ lettersInCommon guess secretWord))
+      # intercalate "\n" 
+  }
+  where n = length guesses
 
 speeches ::
   { gameStarted :: Speech
