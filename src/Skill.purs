@@ -322,7 +322,7 @@ lettersInCommon w1 w2 =
 guessCard :: String → Array String → Card
 guessCard secretWord guesses = Card
   { type : Simple
-  , title : show n <> "Guesses"
+  , title : "Secret Word - " <> show n <> " Guesses"
   , content : guesses
       # map (\guess → guess <> " - " <> (show $ lettersInCommon guess secretWord))
       # intercalate "\n" 
