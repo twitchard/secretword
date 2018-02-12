@@ -39,12 +39,43 @@
           "samples": [
             "Guess {Word}",
             "I guess {Word}",
-            "My guess is {Word}"
+            "My guess is {Word}",
+            "How about {Word}"
           ],
           "slots": [
             {
               "name": "Word",
               "type": "FiveLetterWord"
+            }
+          ]
+        },
+        {
+          "name": "SpellingIntent",
+          "samples": [
+            "I guess {FirstLetter} {SecondLetter} {ThirdLetter} {FourthLetter} {FifthLetter}",
+            "{FirstLetter} {SecondLetter} {ThirdLetter} {FourthLetter} {FifthLetter}",
+            "How about {FirstLetter} {SecondLetter} {ThirdLetter} {FourthLetter} {FifthLetter}"
+          ],
+          "slots": [
+            {
+              "name": "FirstLetter",
+              "type": "Letter"
+            },
+            {
+              "name": "SecondLetter",
+              "type": "Letter"
+            },
+            {
+              "name": "ThirdLetter",
+              "type": "Letter"
+            },
+            {
+              "name": "FourthLetter",
+              "type": "Letter"
+            },
+            {
+              "name": "FifthLetter",
+              "type": "Letter"
             }
           ]
         },
@@ -8106,6 +8137,323 @@
               "name": {
                 "synonyms": [],
                 "value": "arbor"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Letter",
+          "values": [
+            {
+              "name": {
+                "synonyms": [],
+                "value": "A"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "B"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "C"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "D"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "E"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "F"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "G"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "H"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "I"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "J"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "K"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "L"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "M"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "N"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "O"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "P"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Q"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "R"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "S"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "T"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "U"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "V"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "W"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "X"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Y"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Z"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Alpha"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Bravo"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Charlie"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Delta"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Echo"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Foxtrot"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Golf"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Hotel"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "India"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Juliet"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Kilo"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Lima"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Mike"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "November"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Oscar"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Papa"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Quebec"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Romeo"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Sierra"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Tango"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Uniform"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Victor"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Whiskey"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "X-ray"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Yankee"
+              }
+            },
+            {
+              "name": {
+                "synonyms": [],
+                "value": "Zulu"
               }
             }
           ]
