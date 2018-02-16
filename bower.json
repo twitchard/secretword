@@ -17,6 +17,7 @@
     "purescript-quickcheck": "~4.6.1",
     "purescript-test-unit": "~13.0.0"
   },
+  "license": "MIT",
   "devDependencies": {
     "purescript-psci-support": "~3.0.0"
   }
