@@ -21,7 +21,7 @@ import Data.String.Utils (toCharArray)
 import SecretWord.Words (isRealWord, randomFiveLetterWord)
 import Simple.JSON (read)
 import Types (Card(..), CardType(..), Input(..), Output(..), Response, Session, SessionRec, SkillError(..), Speech(..), Status(..))
-import Web.Amazon.Alexa.Types (AlexaRequest(..), AlexaResponse, BuiltInIntent(..), readBuiltInIntent)
+import Amazon.Alexa.Types (AlexaRequest(..), AlexaResponse, BuiltInIntent(..), readBuiltInIntent)
 
 readIntent :: String → Foreign → Input
 readIntent intent slots =

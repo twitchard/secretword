@@ -3,6 +3,7 @@ module Main where
 import Prelude
 
 import AWS.DynamoDB (DYNAMO, getClient)
+import Amazon.Alexa.Handler (makeHandler)
 import Control.Monad.Aff (Aff, Error, Fiber, launchAff_)
 import Control.Monad.Aff.Compat (EffFnAff, fromEffFnAff)
 import Control.Monad.Aff.Console (CONSOLE)
@@ -20,7 +21,6 @@ import Module (model)
 import Simple.JSON (write, writeJSON)
 import Skill (handle)
 import TestDB (emptyDB)
-import Web.AWS.Lambda (makeHandler)
 
 foreign import args ::
   { bin :: String

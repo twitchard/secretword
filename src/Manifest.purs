@@ -2,7 +2,7 @@ module Manifest where
 
 import Prelude
 
-import Amazon.Alexa.Skill.Manifest (Manifest)
+import Amazon.Alexa.Manifest (Manifest)
 import Data.Foreign.NullOrUndefined (NullOrUndefined(..))
 import Data.Maybe (Maybe(..))
 import Data.StrMap (empty, singleton)

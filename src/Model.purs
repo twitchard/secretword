@@ -2,7 +2,7 @@ module Module where
 
 import Prelude
 
-import Amazon.Alexa.Skill.LanguageModel (LanguageModel)
+import Amazon.Alexa.LanguageModel (LanguageModel)
 import SecretWord.Words (commonFiveLetterWords)
 
 model ::
