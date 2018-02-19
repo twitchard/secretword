@@ -35,7 +35,7 @@ manifest =
       , apis : 
           { "custom" :
               { "endpoint":
-                  { "sourceDir" : NullOrUndefined $ Just "lambda/custom"
+                  { "sourceDir" : NullOrUndefined $ Just "output"
                   , "uri" : NullOrUndefined $ Nothing
                   }
               }
