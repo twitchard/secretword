@@ -7,18 +7,18 @@
     "test": "test"
   },
   "scripts": {
-    "build": "pulp build -o lambda/custom/output",
-    "deploy": "pulp build -o lambda/custom/output && ask deploy --target lambda",
+    "build": "pulp build ",
+    "deploy": "pulp build && ask deploy --target lambda",
 
-    "build-model": "pulp build -o lambda/custom/output && node -e 'require(\"./lambda/custom/output/Main\").main()' model | jq -S '.' > models/en-US.json ",
-    "deploy-model": "pulp build -o lambda/custom/output && node -e 'require(\"./lambda/custom/output/Main\").main()' model | jq -S '.' > models/en-US.json && ask deploy --target model",
+    "build-model": "pulp build && node -e 'require(\"./output/Main\").main()' model | jq -S '.' > models/en-US.json ",
+    "deploy-model": "pulp build && node -e 'require(\"./output/Main\").main()' model | jq -S '.' > models/en-US.json && ask deploy --target model",
 
 
-    "build-skill": "pulp build -o lambda/custom/output && node -e 'require(\"./lambda/custom/output/Main\").main()' manifest | jq -S '.' > skill.json",
-    "deploy-skill": "pulp build -o lambda/custom/output && node -e 'require(\"./lambda/custom/output/Main\").main()' manifest | jq -S '.' > skill.json && ask deploy --target skill",
+    "build-skill": "pulp build && node -e 'require(\"./output/Main\").main()' manifest | jq -S '.' > skill.json",
+    "deploy-skill": "pulp build && node -e 'require(\"./output/Main\").main()' manifest | jq -S '.' > skill.json && ask deploy --target skill",
 
-    "build-all": "pulp build -o lambda/custom/output && node -e 'require(\"./lambda/custom/output/Main\").main()' manifest | jq -S '.' > skill.json &&  node -e 'require(\"./lambda/custom/output/Main\").main()' model | jq -S '.' > models/en-US.json",
-    "deploy-all": "pulp build -o lambda/custom/output && node -e 'require(\"./lambda/custom/output/Main\").main()' manifest | jq -S '.' > skill.json &&  node -e 'require(\"./lambda/custom/output/Main\").main()' model | jq -S '.' > models/en-US.json && ask deploy",
+    "build-all": "pulp build && node -e 'require(\"./output/Main\").main()' manifest | jq -S '.' > skill.json &&  node -e 'require(\"./output/Main\").main()' model | jq -S '.' > models/en-US.json",
+    "deploy-all": "pulp build && node -e 'require(\"./output/Main\").main()' manifest | jq -S '.' > skill.json && node -e 'require(\"./output/Main\").main()' model | jq -S '.' > models/en-US.json && ask deploy",
     "test": "pulp test"
   },
   "author": "",
